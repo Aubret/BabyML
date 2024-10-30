@@ -7,7 +7,7 @@ import torchvision
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--data_root', default="/home/fias/postdoc/datasets/shapebias", type=str, help="dataset root")
-parser.add_argument('--name', default="im_obj_feat", choices=["im_obj_feat","obj_text","shape_text"], type=str, help="dataset root")
+parser.add_argument('--name', default="img_img_shapetext", choices=["img_img_shapetext","shape_simpletext","simpleshape_simpletext"], type=str, help="dataset root")
 args = parser.parse_args()
 
 
@@ -15,14 +15,14 @@ args = parser.parse_args()
 
 names = args.name.split("_")
 type1, type2 = names[0], names[1]
-type_to_dir = {"obj": "geirhos-masks","feat": "textures", "shape":"novel-masks", "text": "brodatz-textures"}
+# type_to_dir = {"obj": "geirhos-masks","feat": "textures", "shape":"novel-masks", "text": "brodatz-textures"}
 
 dest_path = os.path.join(args.data_root, args.name)
 if not os.path.exists(dest_path):
     os.makedirs(dest_path)
 
 
-if args.name == "im_obj_feat":
+if args.name == "img_img_shapetext":
     src_path = os.path.join(args.data_root, "images")
     categories = [c for c in os.listdir(src_path)]
     for c in categories:
@@ -57,7 +57,7 @@ if args.name == "im_obj_feat":
                 im2.save(os.path.join(triplet_path,"1.png"))
                 torchvision.utils.save_image(shapetext, os.path.join(triplet_path,"2.png"))
 
-if args.name == "obj_text":
+if args.name == "shape_simpletext":
     src_path = os.path.join(args.data_root, "geirhos-masks")
     categories = [c for c in os.listdir(src_path)]
     for c in categories:
@@ -99,7 +99,7 @@ if args.name == "obj_text":
                 torchvision.utils.save_image(shapetext3, os.path.join(triplet_path,"2.png"))
 
 
-if args.name == "shape_text":
+if args.name == "simpleshape_simpletext":
     src_path = os.path.join(args.data_root, "novel-masks")
     categories = [c for c in os.listdir(src_path)]
     for ims1 in categories:

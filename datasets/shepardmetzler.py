@@ -66,7 +66,6 @@ class ShepardMetzler(Dataset):
         subset, name = self.subset[idx], self.image_file_names[idx]
         img = img.crop(self.box_features if subset == "features" else self.box_others)
         label = torch.tensor(label).float()
-
         if self.transform:
             img = self.transform(img)
         return img, label, self.name_to_id[subset+name]

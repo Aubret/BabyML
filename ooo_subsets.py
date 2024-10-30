@@ -18,7 +18,6 @@ def ooo_subsets(args):
     torch.set_float32_matmul_precision('medium')
     strategy = DDPStrategy(broadcast_buffers=False) #if args.device != "cpu" else "ddp_cpu"
     fabric = L.Fabric(accelerator=args.device, devices=args.num_devices, strategy=strategy, precision="32-true")
-    fabric.seed_everything(args.seed)
     fabric.launch()
 
     preprocess = get_transforms(args.dataset)
@@ -63,7 +62,7 @@ if __name__ == '__main__':
 
 
     name_test = args.load.split('/')[-1].split(".")[0]
-    with open(os.path.join(args.log_dir, f"{args.pos_subset}_{name_test}_{args.seed}_{args.dataset}_ooo_subsets.csv"), "w") as f:
+    with open(os.path.join(args.log_dir, f"{args.pos_subset}_{name_test}_{args.dataset}_ooo_subsets.csv"), "w") as f:
         wcsv = csv.writer(f)
         wcsv.writerow(["mean ooo"])
         acc = [ooo_subsets(args)]

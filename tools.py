@@ -59,10 +59,25 @@ def load_model(args, preprocess=None):
         model.load_state_dict(checkpoint, strict=args.load_strict)
     return model, preprocess
 
-def get_transforms(dataset):
-    mean, std, image_size = (0.485, 0.456, 0.406), (0.229, 0.224, 0.225), 512
-    # mean, std, image_size = (0.5, 0.5, 0.5), (0.5, 0.5, 0.5), 224
-    if dataset in ["frankenstein", "shepardmetzler"]:
+
+
+def get_transforms(args):
+    # mean, std, image_size = (0.485, 0.456, 0.406), (0.229, 0.224, 0.225), 512
+    if "omni" in args.load:
+        mean, std, image_size = (0, 0, 0), (1, 1, 1), 224
+    else:
+        mean, std, image_size = (0.485, 0.456, 0.406), (0.229, 0.224, 0.225), 224
+        # mean, std, image_size = (0, 0, 0), (1, 1, 1), 224
+
+        # mean, std, image_size = (0.5, 0.5, 0.5), (0.5, 0.5, 0.5), 224
+    if args.dataset == "shepardmetzler":
+        # mean, std, image_size = (0, 0, 0), (1, 1, 1), 224
+        # mean, std, image_size = (0.5, 0.5, 0.5), (0.5, 0.5, 0.5), 224
+        return trv2.Compose(
+            [trv2.Resize(image_size, interpolation=InterpolationMode.BICUBIC), trv2.CenterCrop(image_size),
+             trv2.ToImage(), trv2.ToDtype(torch.float32, scale=True), trv2.Normalize(mean=mean, std=std)])
+
+    if args.dataset in ["frankenstein", "shepardmetzler"]:
         #Silhouettes are close to the border of the image
         return trv2.Compose([trv2.Resize((image_size, image_size), interpolation=InterpolationMode.BICUBIC), trv2.ToImage(),
                              trv2.ToDtype(torch.float32, scale=True), trv2.Normalize(mean=mean, std=std)])
@@ -78,7 +93,7 @@ def get_features(dataloader, model, fabric):
         # plt.title(f"{DATASETS['frankenstein'].label_to_class[int(label[0])]}")
         # plt.show()
         f = model(img)
-        f = model.head(f)
+        # f = model.head(f)
         features.append(f)
         labels.append(label)
         img_ids.append(img_id)
@@ -97,3 +112,17 @@ def add_head(model, head):
         model.head_prediction = MultiLayerProj(2, 128, 2048, 128, bias=False)
     else:
         model.head = torch.nn.Identity()
+
+def str2table(v):
+    return v.split(',')
+
+
+def str2bool(v):
+    if isinstance(v, bool):
+        return v
+    if v.lower() in ('yes', 'true', 't', 'y', '1', 'True'):
+        return True
+    elif v.lower() in ('no', 'false', 'f', 'n', '0', 'False'):
+        return False
+    else:
+        raise Exception('Boolean value expected.')

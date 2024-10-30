@@ -28,7 +28,7 @@ Dinov2: script download
 ### Examples
 
 ```
-python3 ooo_category.py --dataset frankenstein --load ../models/imgnet_100ep/converted_aabyol.ckpt --data_root ../datasets/baker/ --subset frankenstein
+python3 ooo_category.py --dataset frankenstein --load ../models/imgnet_100ep/converted_aabyol.ckpt --data_root ../datasets/baker/ --subset full
 python3 odd_one_out.py --dataset babymodel --load ../models/imgnet_100ep/converted_aabyol.ckpt --data_root ../datasets/BabyVsModel/image_files/v0 --subset full
 python3 ooo_subset.py --dataset babymodel --load ../models/imgnet_100ep/converted_aabyol.ckpt --data_root ../datasets/BabyVsModel/image_files/v0 --subset full
 python3 posout_negin.py --dataset babymodel --load clip --data_root ../datasets/BabyVsModel/image_files/v0 --subset full --batch_size 8 --device cpu --subset geons

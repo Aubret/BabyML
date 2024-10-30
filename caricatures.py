@@ -11,22 +11,27 @@ from datasets import DATASETS
 from lightning.fabric.strategies import DDPStrategy
 import lightning as L
 
+from models import list_models
+from models.registry import model_registry
 from tools import BACKBONES, load_model, add_head, get_features, get_transforms
 
 
 @torch.no_grad()
-def odd_one_out(args):
+def caricatures(args, subset):
     torch.set_float32_matmul_precision('medium')
     strategy = DDPStrategy(broadcast_buffers=False) #if args.device != "cpu" else "ddp_cpu"
     fabric = L.Fabric(accelerator=args.device, devices=args.num_devices, strategy=strategy, precision="32-true")
-    fabric.seed_everything(args.seed)
     fabric.launch()
 
-    preprocess = get_transforms(args.dataset)
-    model, preprocess = load_model(args,  preprocess)
-    print(preprocess)
+    preprocess = get_transforms(args)
+    if args.load in list_models():
+        model = model_registry[args.load]()
+        if isinstance(model, tuple) and len(model) > 1:
+            model, preprocess = model
+    else:
+        model, preprocess = load_model(args, preprocess)
 
-    dataset = DATASETS[args.dataset](args.data_root, subset_name=args.subset, transform=preprocess)
+    dataset = DATASETS[args.dataset](args.data_root, subset_name=subset, transform=preprocess)
     datasetf = DATASETS[args.dataset](args.data_root, subset_name="realistic", transform=preprocess)
 
     dataloader = DataLoader(dataset, batch_size=args.batch_size, shuffle=True, pin_memory=True)
@@ -73,6 +78,18 @@ def odd_one_out(args):
             fails += len(positives)*len(negatives) - all_success
     return (success / (fails + success)).item()
 
+def start_caricatures(args, log_dir, subset_name):
+    subset_set = DATASETS[args.dataset].all_subsets + ["all"] if subset_name == "full" else [subset_name]
+    print(subset_name,subset_set)
+    name_test = args.load.split('/')[-1].split(".")[0] if not args.load in list_models() else args.load
+    with open(os.path.join(log_dir, f"{subset_name}_{name_test}_{args.dataset}_caricatures.csv"), "w") as f:
+        wcsv = csv.writer(f)
+        wcsv.writerow(subset_set)
+        acc = []
+        for subset in subset_set:
+            acc.append(caricatures(args, subset))
+        wcsv.writerow(acc)
+
 
 if __name__ == '__main__':
     ### Support only one gpu/cpu
@@ -83,13 +100,4 @@ if __name__ == '__main__':
     if not os.path.exists(args.log_dir):
         os.makedirs(args.log_dir)
 
-    subset_set = DATASETS[args.dataset].all_subsets + ["all"] if subset_name == "full" else [subset_name]
-    name_test = args.load.split('/')[-1].split(".")[0]
-    with open(os.path.join(args.log_dir, f"{subset_name}_{name_test}_{args.dataset}_posout_negin.csv"), "w") as f:
-        wcsv = csv.writer(f)
-        wcsv.writerow(subset_set)
-        acc = []
-        for subset in subset_set:
-            args.subset = subset
-            acc.append(odd_one_out(args))
-        wcsv.writerow(acc)
+    start_caricatures(args, args.log_dir, subset_name)

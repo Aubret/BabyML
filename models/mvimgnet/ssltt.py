@@ -1,5 +1,6 @@
 import re
 
+from torch import nn
 from torch.utils import model_zoo
 from torchvision.models import resnet50
 
@@ -13,17 +14,22 @@ model_urls = {
 
 def mvimgnet(variant):
     model = resnet50()
+    model.fc = nn.Identity()
     checkpoint = model_zoo.load_url(model_urls[variant])
-
+    checkpoint = checkpoint["model"]
     new_state_dict = {}
     for k, w in checkpoint.items():
         if re.search("^model.*", k):
             k = ".".join(k.split(".")[1:])
-        if re.search("^projector.*", k):
+        if re.search("projector.*", k):
             continue
         if re.search("^sup_lin*", k):
             continue
-        if "action_head" in k and not "action_head" in args.keep_proj:
+        if "ciper_action_bn" in k:
+            continue
+        if "predictor" in k:
+            continue
+        if "action_head" in k:
             continue
         # if "action_projector" in k and "action_projector" in args.keep_proj:
         #     new_k = ".".join(["head_action.layers"] + k.split(".")[2:])

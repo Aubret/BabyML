@@ -1,15 +1,15 @@
 from collections import defaultdict
 
-__all__ = ['list_models']
+__all__ = ['list_models', 'register_model', 'model_registry']
 
-_model_registry = [] # mapping of model names to entrypoint fns
+model_registry = {}
 
 
 def register_model():
     def inner_decorator(fn):
         # add entries to registry dict/sets
         model_name = fn.__name__
-        _model_registry.append(model_name)
+        model_registry[model_name] = fn
         return fn
     return inner_decorator
 
@@ -17,4 +17,5 @@ def register_model():
 def list_models():
     """ Return list of available model names
     """
-    return _model_registry
+    return model_registry.keys()
+

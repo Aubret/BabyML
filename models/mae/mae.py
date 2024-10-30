@@ -26,5 +26,8 @@ def vit_large_patch16(**kwargs):
 
 def MAE(backbone):
     model = vit_base_patch16() if backbone == "vitb" else vit_large_patch16()
-    model.load_state_dict(model_zoo.load_url(model_urls[backbone]))
+    state_dict = model_zoo.load_url(model_urls[backbone])
+    state_dict = state_dict["model"]
+    model.head = nn.Identity()
+    model.load_state_dict(state_dict)
     return model

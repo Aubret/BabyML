@@ -4,13 +4,19 @@ from timm.models import VisionTransformer
 from torch import nn
 from torch.utils import model_zoo
 
-models_urls = {
-    "vc1": "https://dl.fbaipublicfiles.com/eai-vc/vc1_vitl.pth"
-}
+# model_urls = {
+#     "vc1": "https://dl.fbaipublicfiles.com/eai-vc/vc1_vitl.pth"
+# }
 
 def VC1_Model():
     model = vit_large_patch16()
-    model.load_state_dict(model_zoo.load_url(model_urls["vc1"]))
+    # model.load_state_dict(model_zoo.load_url(model_urls["vc1"]))
+    state_dict = model_zoo.load_url("https://dl.fbaipublicfiles.com/eai-vc/vc1_vitl.pth")
+    state_dict = state_dict["model"]
+    model.head = nn.Identity()
+    del state_dict["mask_token"]
+    model.load_state_dict(state_dict)
+    return model
 
 def vit_base_patch16(**kwargs):
     model = VisionTransformer(

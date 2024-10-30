@@ -8,6 +8,7 @@
 # Extracted from https://github.com/bethgelab/model-vs-human/
 
 import torch
+from torch import nn
 from torch.hub import load_state_dict_from_url
 from torchvision.models import resnet50
 
@@ -38,7 +39,7 @@ def _model(arch, model_fn, pretrained, progress, use_data_parallel, **kwargs):
         model.load_state_dict(sd)
 
     model = torch.nn.DataParallel(model) if use_data_parallel else model
-
+    model.fc = nn.Identity()
     return model
 
 

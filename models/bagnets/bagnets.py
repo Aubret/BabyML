@@ -5,7 +5,10 @@ https://github.com/bethgelab/model-vs-human/
 """
 import math
 import os
+import urllib
 
+import gdown
+import torch
 import torch.nn as nn
 from torch.utils import model_zoo
 
@@ -141,7 +144,12 @@ def bagnet33(pretrained=False, strides=[2, 2, 2, 1], **kwargs):
     """
     model = BagNet(Bottleneck, [3, 4, 6, 3], strides=strides, kernel3=[1, 1, 1, 1], **kwargs)
     if pretrained:
-        model.load_state_dict(model_zoo.load_url(model_urls['bagnet33']))
+        path = f"{os.environ['HOME']}/.cache/torch/hub/checkpoints/bagnet33.pt"
+        if not os.path.exists(path):
+            gdown.download(model_urls['bagnet33'],path, quiet=False)
+        model.load_state_dict(torch.load(path))
+
+    model.fc = nn.Identity()
     return model
 
 
@@ -153,7 +161,11 @@ def bagnet17(pretrained=False, strides=[2, 2, 2, 1], **kwargs):
     """
     model = BagNet(Bottleneck, [3, 4, 6, 3], strides=strides, kernel3=[1, 1, 1, 0], **kwargs)
     if pretrained:
-        model.load_state_dict(model_zoo.load_url(model_urls['bagnet17']))
+        path = f"{os.environ['HOME']}/.cache/torch/hub/checkpoints/bagnet17.pt"
+        if not os.path.exists(path):
+            gdown.download(model_urls['bagnet17'],path, quiet=False)
+        model.load_state_dict(torch.load(path))
+    model.fc = nn.Identity()
     return model
 
 
@@ -165,5 +177,24 @@ def bagnet9(pretrained=False, strides=[2, 2, 2, 1], **kwargs):
     """
     model = BagNet(Bottleneck, [3, 4, 6, 3], strides=strides, kernel3=[1, 1, 0, 0], **kwargs)
     if pretrained:
-        model.load_state_dict(model_zoo.load_url(model_urls['bagnet9']))
+        path = f"{os.environ['HOME']}/.cache/torch/hub/checkpoints/bagnet9.pt"
+        if not os.path.exists(path):
+            gdown.download(model_urls['bagnet9'],path, quiet=False)
+        model.load_state_dict(torch.load(path))
+    model.fc = nn.Identity()
+    return model
+
+def load(model, name, url):
+    home = os.environ['HOME']
+    if not os.path.exists(f"{home}/.cache/torch/hub/checkpoints/"):
+        os.makedirs(f"{home}/.cache/torch/hub/checkpoints/")
+
+    if os.path.exists(f"{os.environ['HOME']}/.cache/torch/hub/checkpoints/{name}"):
+        model.load_state_dict(torch.load(f"{home}/.cache/torch/hub/checkpoints/{name}"))
+        return model
+
+
+    urllib.request.urlretrieve(url, f"{home}/.cache/torch/hub/checkpoints/{name}")
+    model_state_dict = torch.load(f"{home}/.cache/torch/hub/checkpoints/{name}")
+    model.load_state_dict(model_state_dict)
     return model

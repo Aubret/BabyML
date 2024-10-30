@@ -1,6 +1,7 @@
 import clip
 import torch
 import torchvision
+from torch import nn
 from torchvision.models import ViT_L_16_Weights
 
 from models.byol.byol import Byol
@@ -9,8 +10,8 @@ from models.mvimgnet.ssltt import mvimgnet
 from models.visual_control.r3m import R3M_Model
 from models.visual_control.vc1 import VC1_Model
 from models.visual_control.vip import VIP_Model
-from registry import register_model
-
+from .registry import register_model
+from torchvision.transforms import v2 as trv2, InterpolationMode
 
 def model_pytorch(model_name, *args):
     import torchvision.models as zoomodels
@@ -19,49 +20,62 @@ def model_pytorch(model_name, *args):
 
 
 @register_model()
-def Clip():
-    model, preprocess = clip.load("ViT-L/14", device="cpu")
+def clip_vit():
+    model, preprocess = clip.load("ViT-L/14")
     model.forward = model.encode_image
     return model, preprocess
 
 @register_model()
-def ClipRN50():
+def clip_rn50():
     model, preprocess = clip.load("RN50")
     model.forward = model.encode_image
     return model, preprocess
 
 @register_model()
-def SupViTL16():
+def dinov2():
     model = torch.hub.load('facebookresearch/dinov2', 'dinov2_vitl14_reg')
+    model.fc = nn.Identity()
     return model
 
 @register_model()
-def DinoV2():
-    return torchvision.models.vit_l_16(weights =ViT_L_16_Weights.IMAGENET1K_SWAG_E2E_V1)
+def sup_vitl16():
+    model = torchvision.models.vit_l_16(weights =ViT_L_16_Weights.IMAGENET1K_SWAG_E2E_V1)
+    model.fc = nn.Identity()
+    mean, std, image_size = (0.485, 0.456, 0.406), (0.229, 0.224, 0.225), 512
+    preprocess = trv2.Compose([trv2.Resize(image_size, interpolation=InterpolationMode.BICUBIC), trv2.CenterCrop(image_size),
+                  trv2.ToImage(), trv2.ToDtype(torch.float32, scale=True), trv2.Normalize(mean=mean, std=std)])
+
+    return model, preprocess
 
 
 @register_model()
-def ByolRN50():
-    return Byol("rn50")
+def byol_rn50():
+    model = Byol("rn50")
+    model.fc = nn.Identity()
+    return model
 
 @register_model()
-def MAE_B():
-    return MAE("vitb")
+def mae_vitb16():
+    model = MAE("vitb")
+    model.fc = nn.Identity()
+    return model
 
 @register_model()
-def MAE_L():
-    return MAE("vitl")
+def mae_vitl16():
+    model = MAE("vitl")
+    model.fc = nn.Identity()
+    return model
 
 @register_model()
-def R3M():
+def r3m():
     return R3M_Model()
 
 @register_model()
-def VIP():
+def vip():
     return VIP_Model()
 
 @register_model()
-def VC1():
+def vc1():
     return VC1_Model()
 
 # @register_model()
@@ -69,32 +83,35 @@ def VC1():
 #     return Byol("rn200x4")
 
 @register_model()
-def AASimCLR():
+def aasimclr():
     return mvimgnet("aasimclr")
 
 @register_model()
-def SimCLRmv():
+@register_model()
+def simclrmv():
     return mvimgnet("simclr")
 
 @register_model()
-def SimCLRTT():
+def simclrtt():
     return mvimgnet("simclrtt")
 
 @register_model()
-def CiperSimCLR():
+def cipersimclr():
     return mvimgnet("cipersimclr")
 
-@register_model()
-def MoCo():
-    from .pycontrast.pycontrast_resnet50 import MoCo
-    model, classifier = MoCo(pretrained=True)
-    return model
+# @register_model()
+# def moco():
+#     from .pycontrast.pycontrast_resnet50 import MoCo
+#     model, classifier = MoCo(pretrained=True)
+#     model.fc = nn.Identity()
+#     return model
 
 
 @register_model()
-def MoCoV2():
+def mocov2():
     from .pycontrast.pycontrast_resnet50 import MoCoV2
     model, classifier = MoCoV2(pretrained=True)
+    model.fc = nn.Identity()
     return model
 
 @register_model()
@@ -162,8 +179,6 @@ def resnet50_l2_eps1():
     from .adversarially_robust.robust_models import resnet50_l2_eps1
     return resnet50_l2_eps1()
 
-
-
 @register_model()
 def resnet50_l2_eps3():
     from .adversarially_robust.robust_models import resnet50_l2_eps3
@@ -175,3 +190,9 @@ def resnet50_l2_eps5():
     from .adversarially_robust.robust_models import resnet50_l2_eps5
     return resnet50_l2_eps5()
 
+@register_model()
+def efficientnet_l2_noisy_student_475(model_name, *args):
+    model = torch.hub.load("rwightman/gen-efficientnet-pytorch",
+                           "tf_efficientnet_l2_ns_475",
+                           pretrained=True)
+    return model
