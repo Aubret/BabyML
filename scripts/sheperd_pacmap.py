@@ -4,7 +4,11 @@ import os
 import re
 import sys
 
+import pacmap
 import torchvision.utils
+import seaborn as sns
+from matplotlib.colors import ListedColormap
+from matplotlib.patches import Patch
 
 sys.path.insert(0, os.path.dirname(os.path.realpath(__file__)) + "/..")
 
@@ -20,18 +24,34 @@ from models.heads import ActionMultiLayerProj, MultiLayerProj, MultiLayerProjSho
 from tools import BACKBONES, load_model, get_transforms, add_head, get_features
 from torchvision.transforms import v2 as trv2, InterpolationMode
 
-# def load_model(load):
-#     home = os.environ['HOME']
-#     dest_path = f"{home}/.cache/torch/hub/mental_rotations/"
-#     if not os.path.exists(dest_path):
-#         os.makedirs(dest_path)
-#
-#     path_load = "goethe:/scratch/autolearn/aubret/results/imgnet/"
-#     dest_path = os.path.join(dest_path, load)
-#
-#     if os.path.exists(dest_path):
-#         model.load_state_dict(torch.load(f"{home}/.cache/torch/hub/checkpoints/byol_r50.pth.tar"))
-#         return model
+def get_pacmap(representations, labels, class_labels):
+    """
+        Draw the PacMAP plot
+        params:
+            representations: the representations to be evaluated (Tensor)
+            labels: labels of the original data (LongTensor)
+            epoch: epoch (int)
+        return:
+            fig: the PacMAP plot (matplotlib.figure.Figure)
+    """
+    # sns.set()
+    sns.set_style("ticks")
+    sns.set_context('paper', font_scale=1.8, rc={'lines.linewidth': 2})
+    color_map = ListedColormap(sns.color_palette('colorblind', 50))
+    legend_patches = [Patch(color=color_map(i), label=label) for i, label in enumerate(class_labels)]
+    # save the visualization result
+    embedding = pacmap.PaCMAP(2)
+    X_transformed = embedding.fit_transform(representations.cpu().numpy(), init="pca")
+    fig, ax = plt.subplots(1, 1, figsize=(7.7,4.8))
+
+    # labels = labels.cpu().numpy()
+    ax.scatter(X_transformed[:, 0], X_transformed[:, 1], c=labels, cmap=color_map, s=20)
+    ax.set_title("pacmap")
+    plt.xticks([]), plt.yticks([])
+    box = ax.get_position()
+    ax.set_position([box.x0, box.y0, box.width*0.8, box.height])
+    ax.legend(loc='upper left', bbox_to_anchor=(1., 1.), handles=legend_patches, fontsize=13.8)
+    return fig
 
 def clean_checkpoint(checkpoint):
     new_state_dict = {}
@@ -82,14 +102,10 @@ def mental_rotation(args):
     n_out = 512 if args.model == "resnet18" else 2048
     n_features = 128
     print(n_out)
-    # model.head_action = ActionMultiLayerProj(2, 2 * n_out, 2048, n_features, bias=False)
-    # model.head_prediction = MultiLayerProjShortcut(2, n_out+n_features, 4096, n_out, bias=False)
+    model.head_action = ActionMultiLayerProj(2, 2 * n_out, 2048, n_features, bias=False)
+    model.head_prediction = MultiLayerProjShortcut(2, n_out+n_features, 4096, n_out, bias=False)
     # print(model)
 
-    model.head_action = ActionMultiLayerProj(2, 2 * n_out, 2048, n_features, bias=False)
-    # model.head_prediction = MultiLayerProj(2, n_out+n_features, 4096, n_out, bias=False)
-
-    # Objaverse
     # n_features = 256
     # model.head_action = ActionMultiLayerProj(2, 2 * n_out, 2048, n_features, bias=False)
     # model.head_prediction = MultiLayerProj(2, n_out+n_features, 4096, n_out, bias=False)
@@ -98,8 +114,8 @@ def mental_rotation(args):
     # model.action_rep_projector = MultiLayerProj(2, n_out, 2048, 128, bias=False)
     # model.head_prediction = MultiLayerProjShortcut(2, 2*n_features, 4096, 128, bias=False)
 
-    model.head_equivariant = MultiLayerProj(1, 2048, 2048, n_features, bias=False)
-    model.head_prediction = MultiLayerProj(2, 256, 4096, n_features, bias=False)
+    # model.head_equivariant = MultiLayerProj(1, 2048, 4096, n_features, bias=False)
+    # model.head_prediction = MultiLayerProj(2, 256, 4096, n_features, bias=False)
     if args.load != "random":
         checkpoint = torch.load(args.load, map_location="cpu")
         if "model" in checkpoint:
@@ -119,84 +135,25 @@ def mental_rotation(args):
         model.load_state_dict(checkpoint, strict=args.load_strict)
 
     # print(preprocess)
-    whitebg=True
-    dataset = DATASETS[args.dataset](args.data_root, subset_name="features", transform=preprocess, whitebg=whitebg)
-    dataset_pos = DATASETS[args.dataset](args.data_root, subset_name=args.pos_subset, transform=preprocess, whitebg=whitebg)
-    dataset_neg = DATASETS[args.dataset](args.data_root, subset_name=args.neg_subset, transform=preprocess, whitebg=whitebg)
+    dataset = DATASETS[args.dataset](args.data_root, subset_name="features", transform=preprocess)
+    dataset_pos = DATASETS[args.dataset](args.data_root, subset_name=args.pos_subset, transform=preprocess)
+    dataset_neg = DATASETS[args.dataset](args.data_root, subset_name=args.neg_subset, transform=preprocess)
 
-    dataloader = DataLoader(dataset, batch_size=16, shuffle=False, pin_memory=True, num_workers=1)
     dataloader_pos = DataLoader(dataset_pos, batch_size=16, shuffle=False, pin_memory=True, num_workers=1)
     dataloader_neg = DataLoader(dataset_neg, batch_size=16, shuffle=False, pin_memory=True, num_workers=1)
 
-    dataloader, dataloader_pos, dataloader_neg = fabric.setup_dataloaders(dataloader, dataloader_pos, dataloader_neg)
+    dataloader_pos, dataloader_neg = fabric.setup_dataloaders(dataloader_pos, dataloader_neg)
 
-    # for img, label, img_id in dataloader:
-    #     for i, idi in zip(img, img_id):
-    #         torchvision.utils.save_image(i, "/home/fias/postdoc/gym_results/test_images/sheperdwhite/"+str(idi.item())+".png")
-    #     break
-    # for img, label, img_id in dataloader_pos:
-    #     for i, idi in zip(img, img_id):
-    #         torchvision.utils.save_image(i, "/home/fias/postdoc/gym_results/test_images/sheperdwhite2/"+str(idi.item())+".png")
-    #     break
-    # return
     model = fabric.setup(model)
     model.eval()
 
-    features, labels, img_ids = get_features(dataloader, model, fabric)
     features_pos, labels_pos, img_ids_pos = get_features(dataloader_pos, model, fabric)
     features_neg, labels_neg, img_ids_neg = get_features(dataloader_neg, model, fabric)
 
-    # assert to verify the shuffle=False works well
-    assert (img_ids_neg == img_ids_pos).float().sum() == img_ids_pos.shape[0]
-    assert (img_ids == img_ids_pos).float().sum() == img_ids_pos.shape[0]
-
-
-    correct = torch.nn.functional.cosine_similarity(features, features_pos, dim=1)
-    wrong1 = torch.nn.functional.cosine_similarity(features, features_neg, dim=1)
-    # wrong2 = torch.nn.functional.cosine_similarity(features_pos, features_neg, dim=1)
-    # naive_acc= ((correct >= wrong1) & (correct >= wrong2)).float().mean().item()
-    naive_acc= (correct > wrong1).float().mean().item()
-
-    naive_acc_proj, mental_acc1, mental_acc2, cpt, d1, d2, d3, d4, d5, d6 = 0, 0, 0, 0, 0, 0, 0, 0, correct.mean().item(), wrong1.mean().item()
-    for f, f_p, f_n in zip(features.split(64), features_pos.split(64), features_neg.split(64)):
-        if hasattr(model, "action_rep_projector"):
-            f, f_p, f_n = model.action_rep_projector(f),model.action_rep_projector(f_p),model.action_rep_projector(f_n)
-
-        pred_action = model.head_action.forward_all(f, f_p)
-        pred_action_n = model.head_action.forward_all(f, f_n)
-
-
-        if hasattr(model, "head_equivariant"):
-            proj, proj_p, proj_n = model.head_equivariant(f),model.head_equivariant(f_p),model.head_equivariant(f_n)
-        else:
-            proj, proj_p, proj_n = f, f_p, f_n
-
-
-
-        pred_proj = model.head_prediction(torch.cat((proj, pred_action), dim=1))
-        pred_proj_n = model.head_prediction(torch.cat((proj, pred_action_n), dim=1))
-
-        old = torch.nn.functional.cosine_similarity(proj, proj_p, dim=1)
-        correct = torch.nn.functional.cosine_similarity(pred_proj, proj_p, dim=1)
-        wrong1 = torch.nn.functional.cosine_similarity(pred_proj_n, proj_n, dim=1)
-        wrong2 = torch.nn.functional.cosine_similarity(pred_proj, proj, dim=1)
-        wrong3 = torch.nn.functional.cosine_similarity(proj_n, proj_p, dim=1)
-        mental_acc1 += (correct > wrong1).float().sum().item()
-        # mental_acc2 += ((correct >= wrong1) & (correct >= wrong2) & (correct >= wrong3)).float().sum().item()
-        mental_acc2 += (correct > old).float().sum().item()
-        d1 += correct.sum().item()
-        d2 += wrong1.sum().item()
-        d3 += wrong2.sum().item()
-        d4 += wrong3.sum().item()
-        cpt += len(f)
-
-        # c = torch.nn.functional.cosine_similarity(proj, proj_p, dim=1)
-        w1 = torch.nn.functional.cosine_similarity(proj, proj_n, dim=1)
-        # w2 = torch.nn.functional.cosine_similarity(proj_p, proj_n, dim=1)
-        # naive_acc_proj += ((c >= w1) & (c >= w2)).float().sum().item()
-        naive_acc_proj += (old > w1).float().sum().item()
-
-    return naive_acc, naive_acc_proj/cpt, mental_acc1/cpt, mental_acc2/cpt, d1/cpt, d2/cpt, d3/cpt, d4/cpt, d5, d6
+    all_features = torch.cat((features_pos[:4], features_neg[:4]), dim=0 )
+    labels = [0,0,0,0,1,1,1,1]
+    fig = get_pacmap(all_features, labels, [0,1])
+    fig.savefig("/home/fias/postdoc/gym_results/test_images/pacmap/mrtest.png")
 
 
 if __name__ == '__main__':
@@ -218,21 +175,21 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser()
 
     # General
-    parser.add_argument('--data_root', default="../datasets/ShepardMetzler/", type=str)
+    parser.add_argument('--data_root', default="data", type=str)
     parser.add_argument('--log_dir', default="logs", type=str)
     parser.add_argument('--load', default="random", type=str)
     parser.add_argument('--model', default="resnet50", type=str)
     parser.add_argument('--head', default="", type=str)
     parser.add_argument('--batch_size', default=16, type=int)
     parser.add_argument('--load_strict', default=True, type=str2bool)
-    parser.add_argument('--keep_proj', default=["action_projector","equivariant_predictor","equivariant_projector"], type=str2table)
+    parser.add_argument('--keep_proj', default=[], type=str2table)
 
     parser.add_argument('--device', default="cuda", type=str)
     parser.add_argument('--num_devices', default=1, type=int)
 
+    parser.add_argument('--pos_subset', default="rotated", type=str)
+    parser.add_argument('--neg_subset', default="mirror", type=str)
     args = parser.parse_args()
-    args.pos_subset = "rotated"
-    args.neg_subset = "mirror"
     args.dataset = "shepardmetzler"
     # assert args.head == "action_prediction", "Need action prediction module"
     args.log_dir = os.path.join(args.log_dir, args.dataset, "mental")
@@ -241,8 +198,4 @@ if __name__ == '__main__':
 
     splits = args.load.split('/')
     name_test = splits[-4]+"_"+splits[-1].split(".")[0]
-    with open(os.path.join(args.log_dir, f"{args.pos_subset}_{name_test}_{args.dataset}_ooo_mental.csv"), "w") as f:
-        wcsv = csv.writer(f)
-        wcsv.writerow(["naive", "naive_proj", "mr", "mr2", "dmr1", "dmr2", "dmr3", "dmr4", "dmr5", "dmr6"])
-        acc = [*mental_rotation(args)]
-        wcsv.writerow(acc)
+    mental_rotation(args)

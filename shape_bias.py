@@ -19,6 +19,7 @@ def shape_bias(args):
     torch.set_float32_matmul_precision('medium')
     strategy = DDPStrategy(broadcast_buffers=False) #if args.device != "cpu" else "ddp_cpu"
     fabric = L.Fabric(accelerator=args.device, devices=args.num_devices, strategy=strategy, precision="32-true")
+    fabric.seed_everything(2)
     fabric.launch()
 
     dataset = args.dataset
@@ -30,12 +31,13 @@ def shape_bias(args):
     else:
         model, preprocess = load_model(args, preprocess)
 
-    dataset = DATASETS[dataset](os.path.join(args.data_root, dataset), transform=preprocess)
+    dataset = DATASETS[dataset](os.path.join(args.data_root, dataset), transform=preprocess, whitebg=args.whitebg)
     dataloader = DataLoader(dataset, batch_size=args.batch_size, shuffle=False, pin_memory=True)
     dataloader = fabric.setup_dataloaders(dataloader)
 
     model = fabric.setup(model)
     model.eval()
+
 
     shape_decision = 0
     total_decision = 0
@@ -44,7 +46,6 @@ def shape_bias(args):
             f1, f2, f3 = model(im1), model(im2), model(im3)
         else:
             f1, f2, f3 = model(im3), model(im2), model(im1)
-
 
         f1_f3 = torch.nn.functional.cosine_similarity(f1,f3, dim=1)
         f2_f3 = torch.nn.functional.cosine_similarity(f2,f3, dim=1)
@@ -76,7 +77,8 @@ if __name__ == '__main__':
 
     parser.add_argument('--device', default="cuda", type=str)
     parser.add_argument('--num_devices', default=1, type=int)
-    parser.add_argument('--dataset', default="img_img_shapetext", type=str)
+    parser.add_argument('--dataset', default="shape_simpletext", type=str)
+    parser.add_argument('--whitebg', default=False, type=str2bool)
     args = parser.parse_args()
 
     log_dir = os.path.join(args.log_dir, args.dataset)

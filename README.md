@@ -39,4 +39,5 @@ python3 posout_negin.py --dataset babymodel --load clip --data_root ../datasets/
 ```
 python3 converts/convert_mvimgnet.py --load ../models/mvimgnet/sslactequi/sslactequiradet.pt --keep_proj action_projector,equivariant_projector,equivariant_predictor
 python3 scripts/mental_rotation.py --load ../models/mvimgnet/sslactequi/converted_sslactequira.pt --data_root ../datasets/ShepardMetzler/ --dataset shepardmetzler
+python3 scripts/test_mae_seq.py --load videomae
 ```

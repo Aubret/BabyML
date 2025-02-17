@@ -17,5 +17,5 @@ def register_model():
 def list_models():
     """ Return list of available model names
     """
-    return model_registry.keys()
+    return list(model_registry.keys())
 

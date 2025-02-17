@@ -2,16 +2,36 @@ import os
 
 import PIL
 import torch
+import torchvision
 from torch.utils.data import Dataset
 from PIL import Image
 
+
+class BlackWhite(object):
+    def __call__(self, img):
+        img = img.convert("RGB")
+        datas = img.getdata()
+        new_image_data = []
+        th = 5
+        for item in datas:
+            if item[0] <= th and item[1] <= th and item[2] <= th:
+                new_image_data.append((255, 255, 255))
+            else:
+                new_image_data.append(item)
+        img.putdata(new_image_data)
+        return img
+
 class TripletDataset(Dataset):
 
-    def __init__(self, root_dir,  transform=None):
+    def __init__(self, root_dir,  transform=None, whitebg=False):
+
         self.root_dir = root_dir
         self.transform = transform
-
+        # self.whitebg = whitebg
         self.triplets = list(os.listdir(self.root_dir))
+
+        if whitebg:
+            self.transform = torchvision.transforms.Compose([BlackWhite(), transform])
 
 
     def __len__(self):

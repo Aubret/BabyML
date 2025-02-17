@@ -83,12 +83,12 @@ if args.name == "shape_simpletext":
 
                 text1 = torchvision.transforms.functional.to_tensor(text1)[:3]
                 text1 = torchvision.transforms.functional.center_crop(text1, (224,224))
-                shapetext1 = text1 * (1-shape1)
-                shapetext2 = text1 * (1-shape2)
+                shapetext1 = shape1 + text1 * (1-shape1)
+                shapetext2 = shape2 + text1 * (1-shape2)
 
                 text2 = torchvision.transforms.functional.to_tensor(text2)[:3]
                 text2 = torchvision.transforms.functional.center_crop(text2, (224,224))
-                shapetext3 = text2 * (1-shape1)
+                shapetext3 = shape1 + text2 * (1-shape1)
 
 
                 triplet_path = os.path.join(dest_path, f'{c}_{c2}_{ims1.split(".")[0]}_{ims2.split(".")[0]}_{texts[0].split(".")[0]}_{texts[1].split(".")[0]}')
@@ -122,12 +122,12 @@ if args.name == "simpleshape_simpletext":
 
                 text1 = torchvision.transforms.functional.to_tensor(text1)[:3]
                 text1 = torchvision.transforms.functional.center_crop(text1, (224,224))
-                shapetext1 = text1 * (1-shape1)
-                shapetext2 = text1 * (1-shape2)
+                shapetext1 = shape1 + text1 * (1-shape1)
+                shapetext2 = shape2 + text1 * (1-shape2)
 
                 text2 = torchvision.transforms.functional.to_tensor(text2)[:3]
                 text2 = torchvision.transforms.functional.center_crop(text2, (224,224))
-                shapetext3 = text2 * (1-shape1)
+                shapetext3 = shape1 + text2 * (1-shape1)
 
 
                 triplet_path = os.path.join(dest_path, f'{ims1.split(".")[0]}_{ims2.split(".")[0]}_{texts1.split(".")[0]}_{texts2.split(".")[0]}')

@@ -1,8 +1,13 @@
+from functools import partial
+
 import clip
+import open_clip
+import timm
 import torch
 import torchvision
+from timm.models import VisionTransformer
 from torch import nn
-from torchvision.models import ViT_L_16_Weights
+from torchvision.models import ViT_L_16_Weights, resnet50, ResNet50_Weights
 
 from models.byol.byol import Byol
 from models.mae.mae import MAE
@@ -10,6 +15,9 @@ from models.mvimgnet.ssltt import mvimgnet
 from models.visual_control.r3m import R3M_Model
 from models.visual_control.vc1 import VC1_Model
 from models.visual_control.vip import VIP_Model
+from .jepa.vjepa import VJEPA
+from .mae.omnimae import OmniMAE
+from .mae.videomae import VideoMAE
 from .registry import register_model
 from torchvision.transforms import v2 as trv2, InterpolationMode
 
@@ -34,13 +42,13 @@ def clip_rn50():
 @register_model()
 def dinov2():
     model = torch.hub.load('facebookresearch/dinov2', 'dinov2_vitl14_reg')
-    model.fc = nn.Identity()
+    model.head = nn.Identity()
     return model
 
 @register_model()
 def sup_vitl16():
     model = torchvision.models.vit_l_16(weights =ViT_L_16_Weights.IMAGENET1K_SWAG_E2E_V1)
-    model.fc = nn.Identity()
+    model.head = nn.Identity()
     mean, std, image_size = (0.485, 0.456, 0.406), (0.229, 0.224, 0.225), 512
     preprocess = trv2.Compose([trv2.Resize(image_size, interpolation=InterpolationMode.BICUBIC), trv2.CenterCrop(image_size),
                   trv2.ToImage(), trv2.ToDtype(torch.float32, scale=True), trv2.Normalize(mean=mean, std=std)])
@@ -49,21 +57,101 @@ def sup_vitl16():
 
 
 @register_model()
+def sup_vitl16classic():
+    model = torchvision.models.vit_l_16(weights =ViT_L_16_Weights.IMAGENET1K_V1)
+    model.head = nn.Identity()
+    mean, std, image_size = (0.485, 0.456, 0.406), (0.229, 0.224, 0.225), 224
+    preprocess = trv2.Compose([trv2.Resize(image_size, interpolation=InterpolationMode.BICUBIC), trv2.CenterCrop(image_size),
+                  trv2.ToImage(), trv2.ToDtype(torch.float32, scale=True), trv2.Normalize(mean=mean, std=std)])
+
+    return model, preprocess
+
+@register_model()
+def swsl_rn50():
+    model = torch.hub.load('facebookresearch/semi-supervised-ImageNet1K-models',
+                           'resnet50_swsl')
+    model.fc = nn.Identity()
+    return model
+
+@register_model()
+def swsl_rnx50():
+    model = torch.hub.load('facebookresearch/semi-supervised-ImageNet1K-models',
+                           'resnext101_32x16d_swsl')
+    model.fc = nn.Identity()
+    return model
+
+@register_model()
+def sup_rn50():
+    model = resnet50(weights=ResNet50_Weights.IMAGENET1K_V2)
+    model.fc = nn.Identity()
+    return model
+
+@register_model()
 def byol_rn50():
     model = Byol("rn50")
     model.fc = nn.Identity()
     return model
 
 @register_model()
+def omnimae_vitb16(**kwargs):
+    model = OmniMAE("vitb", **kwargs)
+    model.head = nn.Identity()
+    return model
+
+@register_model()
+def omnimae_vitl16(**kwargs):
+    model = OmniMAE("vitl", **kwargs)
+    model.head = nn.Identity()
+    return model
+
+
+@register_model()
 def mae_vitb16():
     model = MAE("vitb")
-    model.fc = nn.Identity()
+    model.head = nn.Identity()
     return model
 
 @register_model()
 def mae_vitl16():
     model = MAE("vitl")
-    model.fc = nn.Identity()
+    model.head = nn.Identity()
+    return model
+
+@register_model()
+def vjepa_vitl16(**kwargs):
+    model = VJEPA("vitl",**kwargs)
+    model.head = nn.Identity()
+    return model
+
+@register_model()
+def vjepa_vith16(**kwargs):
+    model = VJEPA("vith",**kwargs)
+    model.head = nn.Identity()
+    return model
+
+@register_model()
+def videomae(**kwargs):
+    model = VideoMAE("something",**kwargs)
+    model.head = nn.Identity()
+    return model
+
+@register_model()
+def videomae_finetune(**kwargs):
+    model = VideoMAE("something_finetune",**kwargs)
+    model.head = nn.Identity()
+    return model
+
+
+@register_model()
+def videomae_ucf(**kwargs):
+    model = VideoMAE("ucf", **kwargs)
+    model.head = nn.Identity()
+    return model
+
+@register_model()
+def videomae_kinetic(**kwargs):
+    model = VideoMAE("kinetic",**kwargs)
+    model.head = nn.Identity()
     return model
 
 @register_model()
@@ -87,7 +175,6 @@ def aasimclr():
     return mvimgnet("aasimclr")
 
 @register_model()
-@register_model()
 def simclrmv():
     return mvimgnet("simclr")
 
@@ -99,12 +186,12 @@ def simclrtt():
 def cipersimclr():
     return mvimgnet("cipersimclr")
 
-# @register_model()
-# def moco():
-#     from .pycontrast.pycontrast_resnet50 import MoCo
-#     model, classifier = MoCo(pretrained=True)
-#     model.fc = nn.Identity()
-#     return model
+@register_model()
+def moco():
+    from .pycontrast.pycontrast_resnet50 import MoCo
+    model, classifier = MoCo(pretrained=True)
+    model.fc = nn.Identity()
+    return model
 
 
 @register_model()
@@ -191,8 +278,46 @@ def resnet50_l2_eps5():
     return resnet50_l2_eps5()
 
 @register_model()
-def efficientnet_l2_noisy_student_475(model_name, *args):
+def efficientnet_l2_noisy_student_475():
     model = torch.hub.load("rwightman/gen-efficientnet-pytorch",
                            "tf_efficientnet_l2_ns_475",
                            pretrained=True)
+    model.classifier = nn.Identity()
     return model
+
+
+@register_model()
+def clip_laion():
+    model = timm.create_model('vit_base_patch16_clip_224.laion2b_ft_in1k', pretrained=True)
+    model = model.eval()
+    # get model specific transforms (normalization, resize)
+    data_config = timm.data.resolve_model_data_config(model)
+    transforms = timm.data.create_transform(**data_config, is_training=False)
+    model.head = nn.Identity()
+    return model, transforms
+
+@register_model()
+def random_rn50():
+    model = resnet50()
+    model.fc = nn.Identity()
+    return model
+
+@register_model()
+def random_vit16l():
+    model = VisionTransformer(
+        patch_size=16, embed_dim=1024, depth=24, num_heads=16, mlp_ratio=4, qkv_bias=True,
+        norm_layer=partial(nn.LayerNorm, eps=1e-6))
+    model.head = nn.Identity()
+    return model
+
+@register_model()
+def cliplaion_vit32b():
+    model, _, preprocess = open_clip.create_model_and_transforms('ViT-g-14', pretrained='laion2b_s12b_b42k')
+    model.forward = model.encode_image
+    return model, preprocess
+
+@register_model()
+def cliplaion_cnxlxx():
+    model, _, preprocess = open_clip.create_model_and_transforms('convnext_xxlarge', pretrained='laion2b_s34b_b82k_augreg')
+    model.forward = model.encode_image
+    return model, preprocess

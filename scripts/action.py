@@ -1,3 +1,4 @@
+import argparse
 import csv
 import math
 import os
@@ -20,8 +21,20 @@ import lightning as L
 from datasets import DATASETS
 from tools import BACKBONES, load_model, get_transforms, add_head, get_features
 from torchvision import transforms
-from matplotlib import pyplot as plt
-from torchvision.transforms import v2 as trv2, InterpolationMode
+
+parser = argparse.ArgumentParser()
+
+# General
+parser.add_argument('--data_root', default="data", type=str)
+parser.add_argument('--log_dir', default="logs", type=str)
+parser.add_argument('--load', default="random", type=str)
+parser.add_argument('--model', default="resnet50", type=str)
+parser.add_argument('--head', default="", type=str)
+parser.add_argument('--batch_size', default=16, type=int)
+parser.add_argument('--load_strict', default=True, type=str2bool)
+
+parser.add_argument('--device', default="cuda", type=str)
+parser.add_argument('--num_devices', default=1, type=int)
 
 
 def get_action(src1, src2, img):
