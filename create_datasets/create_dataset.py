@@ -6,8 +6,8 @@ import PIL
 import torchvision
 
 parser = argparse.ArgumentParser()
-parser.add_argument('--data_root', default="/home/fias/postdoc/datasets/shapebias", type=str, help="dataset root")
-parser.add_argument('--name', default="img_img_shapetext", choices=["img_img_shapetext","shape_simpletext","simpleshape_simpletext"], type=str, help="dataset root")
+parser.add_argument('--data_root', default="resources/shapebias", type=str, help="dataset root")
+parser.add_argument('--name', default="img_img_shapetext", choices=["img_img_shapetext","shape_simpletext","simpleshape_simpletext"], type=str)
 args = parser.parse_args()
 
 
@@ -15,7 +15,6 @@ args = parser.parse_args()
 
 names = args.name.split("_")
 type1, type2 = names[0], names[1]
-# type_to_dir = {"obj": "geirhos-masks","feat": "textures", "shape":"novel-masks", "text": "brodatz-textures"}
 
 dest_path = os.path.join(args.data_root, args.name)
 if not os.path.exists(dest_path):

@@ -5,7 +5,6 @@ import os
 import h5py
 import numpy as np
 import pandas as pd
-import torchvision
 from PIL import Image
 from torch.utils.data import Dataset
 
@@ -38,12 +37,6 @@ class OmniDataset(Dataset):
         self.dataset = self.dataset.loc[(self.dataset["category"] != "teddy") & (self.dataset["category"] != "teddy_bear")].reset_index(drop=True)
         self.dataset["original_index"] = self.dataset.index
         self.dataset["original_y"] = self.dataset["y"]
-        # with open(os.path.join(root_dir, f"omni_canonical_ratio_axis.json"), "r") as outfile:
-        #     canonical_data = json.load(outfile)
-        # with open(os.path.join(root_dir, f"omni_canonical_ratio_axis_test.json"), "r") as outfile:
-        #     canonical_data.update(json.load(outfile))
-        # with open(os.path.join(root_dir, f"sorted_objs.json"), "r") as outfile:
-        #     obj_info = json.load(outfile)
 
         mod_y = []
         for i in range(len(self.dataset)):

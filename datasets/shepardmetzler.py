@@ -2,8 +2,9 @@ import os
 
 import torch
 import torchvision
-from torch.utils.data import Dataset
 from PIL import Image
+from torch.utils.data import Dataset
+
 
 class BlackWhite(object):
     def __call__(self, img):

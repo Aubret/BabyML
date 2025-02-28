@@ -1,43 +1,94 @@
 # BabyML
 
 
+Code for our [ICLR 2025 blog post](https://iclr-blogposts.github.io/2025/blog/2025/toddlers-vs-vismodels/) : **Do vision models perceive objects like 
+toddlers ?**
 
+We will keep updating the repository with new models and novels experiments !
 
+<hr style="border-top: 5px solid grey;">
+
+## News !
+
+----
+- **28/02/2025**: Add VideoMAE, V-JEPA models and other dinov2 models 
+- **28/02/2025**: Upload the original code
+
+<hr style="border-top: 5px solid grey;">
+
+## Install dependencies and datasets
+
+----
+
+`python3 -m pip install -r requirements.txt`
+
+----
+**Caricatures**: Images are available [there](https://osf.io/wbrd4/). To be extracted 
+in `resources/`
 
 ---
-### Models
 
-BYOL downloaded there: 
-https://github.com/google-deepmind/deepmind-research/tree/master/byol
+#### Shape bias
 
-Mocov3 downloaded there:
-https://github.com/facebookresearch/moco-v3/blob/main/CONFIG.md
+From this [repo](https://github.com/alexatartaglini/developmental-shape-bias/tree/master/stimuli):
 
-Dino downloaded there:
-https://github.com/facebookresearch/dino
+- Copy brodatz-textures to `resources/`
+- Copy geirhos-masks to `resources/`
+- Copy novel-masks to `resources`
 
-MVImgNet models:
-https://huggingface.co/aaubret/AASSL/tree/main
+`python3 create_datasets/create_dataset.py --name shape_simpletext`
+`python3 create_datasets/create_dataset.py --name simpleshape_simpletext`
 
-Clip: script download
+---
 
-Dinov2: script download
+**OmniObject3D**  must be downloaded following this [repo](https://github.com/omniobject3d/OmniObject3D)
+
+`python3 create_datasets/create_hdf5_omni.py`
+
+---
+**Normal + Frakenstein silhouettes**: The dataset is provided on demand by [Prof. Baker](https://www.luc.edu/psychology/people/facultyandstaffdirectory/profiles/bakernicholas.shtml)
+
+<hr style="border-top: 5px solid grey;">
 
 
+## Evaluation of models
 
-### Examples
+----
+
+The codes automatically download the models in the standard torch zoo directory. 
+models.
+
+For caricatures: 
+```
+python3 eval_all_caricatures.py --difficulty hard
+python3 eval_all_caricatures.py --difficulty simple
+```
+For shape bias: 
+```
+python3 eval_all_shape_bias --dataset "shape_simpletext"
+python3 eval_all_shape_bias --dataset "simpleshape_simpletext"
+```
+For view bias: `python3 eval_all_views.py`
+
+For configural arrangement of parts: 
+
+`python3 eval_conf_shape.py --difficulty hard`
+
+<hr style="border-top: 5px solid grey;">
+
+## Citation 
+
+----
+
+If you use BabyML, please cite our blogpost:
 
 ```
-python3 ooo_category.py --dataset frankenstein --load ../models/imgnet_100ep/converted_aabyol.ckpt --data_root ../datasets/baker/ --subset full
-python3 odd_one_out.py --dataset babymodel --load ../models/imgnet_100ep/converted_aabyol.ckpt --data_root ../datasets/BabyVsModel/image_files/v0 --subset full
-python3 ooo_subset.py --dataset babymodel --load ../models/imgnet_100ep/converted_aabyol.ckpt --data_root ../datasets/BabyVsModel/image_files/v0 --subset full
-python3 posout_negin.py --dataset babymodel --load clip --data_root ../datasets/BabyVsModel/image_files/v0 --subset full --batch_size 8 --device cpu --subset geons
-```
-
-#### Mental rotations
-
-```
-python3 converts/convert_mvimgnet.py --load ../models/mvimgnet/sslactequi/sslactequiradet.pt --keep_proj action_projector,equivariant_projector,equivariant_predictor
-python3 scripts/mental_rotation.py --load ../models/mvimgnet/sslactequi/converted_sslactequira.pt --data_root ../datasets/ShepardMetzler/ --dataset shepardmetzler
-python3 scripts/test_mae_seq.py --load videomae
+@inproceedings{aubret2024perceive,
+  author = {Aubret, Arthur and Triesch, Jochen},
+  title = {Do vision models perceive objects like toddlers ?},
+  booktitle = {ICLR Blog Track},
+  year = {2025},
+  date = {April 28, 2025},
+  url  = {https://aubret.github.io/2025/blog/toddlers-vs-vismodels/}
+}
 ```

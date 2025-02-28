@@ -1,21 +1,16 @@
 import argparse
-import os, sys
+import os
 
-from caricatures import start_caricatures
-from config import str2bool
 from models import list_models
 from sideviews import start_sideviews
-
-list_models_rn50 = ['clip_rn50', 'byol_rn50', 'r3m', 'vip', 'aasimclr','simclrtt', 'mocov2', 'bagnet33', 'resnet50_l2_eps1', "bagnet17"]
-
-
+from tools import str2bool
 
 if __name__ == '__main__':
     def str2table(v):
         return v.split(',')
 
     parser = argparse.ArgumentParser()
-    parser.add_argument('--data_root', default="../datasets/BabyVsModel/image_files/v0", type=str)
+    parser.add_argument('--data_root', default="resources/BabyVsModel/image_files/v0", type=str)
     parser.add_argument('--log_dir', default="logs", type=str)
     parser.add_argument('--batch_size', default=16, type=int)
     parser.add_argument('--device', default="cuda", type=str)
@@ -35,7 +30,6 @@ if __name__ == '__main__':
     if args.start_models:
         models = models[models.index(args.start_models):]
     for model in models :
-    # for model in list_models_rn50:
         print("Start", model)
         args.load = model
         start_sideviews(args, log_dir)

@@ -1,18 +1,16 @@
 import argparse
 import csv
 import os
-import random
 
+import lightning as L
 import torch
+from lightning.fabric.strategies import DDPStrategy
 from torch.utils.data import DataLoader
 
 from datasets import DATASETS
-from lightning.fabric.strategies import DDPStrategy
-import lightning as L
-
 from models import list_models
 from models.registry import model_registry
-from tools import BACKBONES, load_model, add_head, get_features, get_transforms
+from tools import load_model, get_features, get_transforms
 
 
 @torch.no_grad()
@@ -78,8 +76,7 @@ def caricatures(args, subset):
 
         success += labl_success
         cpt += labl_cpt
-    print(labels.unique().squeeze().cpu().numpy())
-    print(labels_success)
+
     return (success / cpt).item()
 
 
@@ -162,7 +159,7 @@ def start_caricatures(args, log_dir, subset_name):
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
-    parser.add_argument('--data_root', default="../datasets/BabyVsModel/image_files/v0", type=str)
+    parser.add_argument('--data_root', default="resources/BabyVsModel/image_files/v0", type=str)
     parser.add_argument('--log_dir', default="logs", type=str)
     parser.add_argument('--batch_size', default=16, type=int)
     parser.add_argument('--device', default="cuda", type=str)

@@ -1,27 +1,22 @@
 import argparse
 import csv
 import os
-import random
 
+import lightning as L
 import torch
-import torchvision.utils
-from lightning.app.storage.path import num_workers
-from pydantic.v1.main import object_setattr
+from lightning.fabric.strategies import DDPStrategy
 from torch.utils.data import DataLoader
 
 from datasets import DATASETS
-from lightning.fabric.strategies import DDPStrategy
-import lightning as L
-
 from models import list_models
 from models.registry import model_registry
-from tools import BACKBONES, load_model, add_head, get_features, get_transforms, str2bool
+from tools import load_model, get_features, get_transforms, str2bool
 
 
 @torch.no_grad()
 def sideviews(args):
     torch.set_float32_matmul_precision('medium')
-    strategy = DDPStrategy(broadcast_buffers=False) #if args.device != "cpu" else "ddp_cpu"
+    strategy = DDPStrategy(broadcast_buffers=False)
     fabric = L.Fabric(accelerator=args.device, devices=args.num_devices, strategy=strategy, precision="32-true")
     fabric.seed_everything(0)
     fabric.launch()
@@ -58,8 +53,6 @@ def sideviews(args):
     featuresside, catside, objside = get_features(dataloaderside, model, fabric)
     featuresfront, catfront, objfront = get_features(dataloaderfront, model, fabric)
     featuresquarter, catquarter, objquarter = get_features(dataloaderquarter, model, fabric)
-
-    print(features.shape, featuresside.shape, featuresfront.shape, featuresquarter.shape)
     # catlist = cat.unique()
     objlist = obj.unique()
 
@@ -103,7 +96,6 @@ def sideviews(args):
         allresa.append(allres)
 
     objresa, catresa, allresa = torch.tensor(objresa), torch.tensor(catresa), torch.tensor(allresa)
-    print(objresa.shape)
     all_res = []
     for r in (objresa, catresa, allresa):
 
@@ -137,7 +129,7 @@ def start_sideviews(args, log_dir):
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
-    parser.add_argument('--data_root', default="../datasets/OmniDataset/", type=str)
+    parser.add_argument('--data_root', default="resources/OmniDataset/", type=str)
     parser.add_argument('--log_dir', default="logs", type=str)
     parser.add_argument('--batch_size', default=16, type=int)
     parser.add_argument('--device', default="cuda", type=str)

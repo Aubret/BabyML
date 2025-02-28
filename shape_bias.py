@@ -2,12 +2,10 @@ import argparse
 import csv
 import os
 
-import torch
-from torch.utils.data import DataLoader
-
-
-from lightning.fabric.strategies import DDPStrategy
 import lightning as L
+import torch
+from lightning.fabric.strategies import DDPStrategy
+from torch.utils.data import DataLoader
 
 from datasets import DATASETS
 from models.registry import list_models, model_registry
@@ -67,7 +65,7 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser()
 
     # General
-    parser.add_argument('--data_root', default="data", type=str)
+    parser.add_argument('--data_root', default="resources/shapebias/", type=str)
     parser.add_argument('--log_dir', default="logs", type=str)
     parser.add_argument('--load', default="random", type=str)
     parser.add_argument('--model', default="resnet50", type=str)

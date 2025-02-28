@@ -1,16 +1,14 @@
 import os
 from collections import OrderedDict
-import gdown
-
 from functools import partial
+
+import gdown
 import numpy as np
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-from timm.models.layers import drop_path, to_2tuple, trunc_normal_
-from timm.models.registry import register_model
 import torch.utils.checkpoint as checkpoint
-
+from timm.models.layers import drop_path, to_2tuple, trunc_normal_
 
 #https://drive.google.com/file/d/1I18dY_7rSalGL8fPWV82c0-foRUDzJJk/view?usp=sharing
 #https://drive.google.com/uc?id=1I18dY_7rSalGL8fPWV82c0-foRUDzJJk
@@ -306,7 +304,7 @@ class VisionTransformer(nn.Module):
         return x
 
 
-@register_model
+
 def vit_small_patch16_224(pretrained=False, **kwargs):
     model = VisionTransformer(
         patch_size=16, embed_dim=384, depth=12, num_heads=6, mlp_ratio=4, qkv_bias=True,
@@ -315,7 +313,7 @@ def vit_small_patch16_224(pretrained=False, **kwargs):
     return model
 
 
-@register_model
+
 def vit_base_patch16_224(pretrained=False, **kwargs):
     # print({**kwargs})
     model = VisionTransformer(
@@ -325,7 +323,6 @@ def vit_base_patch16_224(pretrained=False, **kwargs):
     return model
 
 
-@register_model
 def vit_base_patch16_384(pretrained=False, **kwargs):
     model = VisionTransformer(
         img_size=384, patch_size=16, embed_dim=768, depth=12, num_heads=12, mlp_ratio=4, qkv_bias=True,
@@ -334,7 +331,6 @@ def vit_base_patch16_384(pretrained=False, **kwargs):
     return model
 
 
-@register_model
 def vit_large_patch16_224(pretrained=False, **kwargs):
     model = VisionTransformer(
         patch_size=16, embed_dim=1024, depth=24, num_heads=16, mlp_ratio=4, qkv_bias=True,
@@ -343,7 +339,6 @@ def vit_large_patch16_224(pretrained=False, **kwargs):
     return model
 
 
-@register_model
 def vit_large_patch16_384(pretrained=False, **kwargs):
     model = VisionTransformer(
         img_size=384, patch_size=16, embed_dim=1024, depth=24, num_heads=16, mlp_ratio=4, qkv_bias=True,
@@ -352,7 +347,6 @@ def vit_large_patch16_384(pretrained=False, **kwargs):
     return model
 
 
-@register_model
 def vit_large_patch16_512(pretrained=False, **kwargs):
     model = VisionTransformer(
         img_size=512, patch_size=16, embed_dim=1024, depth=24, num_heads=16, mlp_ratio=4, qkv_bias=True,
@@ -361,7 +355,6 @@ def vit_large_patch16_512(pretrained=False, **kwargs):
     return model
 
 
-@register_model
 def vit_huge_patch16_224(pretrained=False, **kwargs):
     model = VisionTransformer(
         patch_size=16, embed_dim=1280, depth=32, num_heads=16, mlp_ratio=4, qkv_bias=True,
@@ -445,7 +438,7 @@ def VideoMAE(name_url, n_frame = 2):
     if not os.path.exists(f"{os.environ['HOME']}/.cache/torch/hub/checkpoints/{name}"):
         gdown.download(model_urls[name_url], f'{home}/.cache/torch/hub/checkpoints/{name}', quiet=False)
 
-    checkpoint = torch.load(f'/home/fias/.cache/torch/hub/checkpoints/{name}', map_location='cpu')
+    checkpoint = torch.load(f'{home}/.cache/torch/hub/checkpoints/{name}', map_location='cpu')
 
     # print("Load ckpt from %s" % args.finetune)
     checkpoint_model = None

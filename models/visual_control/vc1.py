@@ -4,6 +4,7 @@ from timm.models import VisionTransformer
 from torch import nn
 from torch.utils import model_zoo
 
+
 # model_urls = {
 #     "vc1": "https://dl.fbaipublicfiles.com/eai-vc/vc1_vitl.pth"
 # }

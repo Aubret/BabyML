@@ -1,14 +1,11 @@
 import os.path
 import re
+import urllib.request
 
 import dill
 import numpy as np
 import torch
-
 from torchvision.models import resnet50
-import urllib.request
-
-
 
 model_urls = {
     'rn50': 'https://storage.googleapis.com/deepmind-byol/checkpoints/pretrain_res50x1.pkl',

@@ -1,15 +1,13 @@
-import math
 import torch
-import torch.nn as nn
-import torch.nn.functional as F
-import torch.utils.checkpoint as checkpoint
 from functools import partial
 
-from models.mae.videomae import Block, _cfg, PatchEmbed, get_sinusoid_encoding_table
-from timm.models.registry import register_model
+import torch
+import torch.nn as nn
+import torch.utils.checkpoint as checkpoint
 from timm.models.layers import trunc_normal_ as __call_trunc_normal_
+from timm.models.registry import register_model
 
-
+from models.mae.videomae import Block, _cfg, PatchEmbed, get_sinusoid_encoding_table
 
 
 def trunc_normal_(tensor, mean=0., std=1.):

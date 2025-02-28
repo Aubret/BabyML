@@ -8,6 +8,7 @@ import torchvision
 from timm.models import VisionTransformer
 from torch import nn
 from torchvision.models import ViT_L_16_Weights, resnet50, ResNet50_Weights
+from torchvision.transforms import v2 as trv2, InterpolationMode
 
 from models.byol.byol import Byol
 from models.mae.mae import MAE
@@ -19,7 +20,7 @@ from .jepa.vjepa import VJEPA
 from .mae.omnimae import OmniMAE
 from .mae.videomae import VideoMAE
 from .registry import register_model
-from torchvision.transforms import v2 as trv2, InterpolationMode
+
 
 def model_pytorch(model_name, *args):
     import torchvision.models as zoomodels
@@ -49,6 +50,7 @@ def dinov2():
 def sup_vitl16():
     model = torchvision.models.vit_l_16(weights =ViT_L_16_Weights.IMAGENET1K_SWAG_E2E_V1)
     model.head = nn.Identity()
+    model.heads = nn.Identity()
     mean, std, image_size = (0.485, 0.456, 0.406), (0.229, 0.224, 0.225), 512
     preprocess = trv2.Compose([trv2.Resize(image_size, interpolation=InterpolationMode.BICUBIC), trv2.CenterCrop(image_size),
                   trv2.ToImage(), trv2.ToDtype(torch.float32, scale=True), trv2.Normalize(mean=mean, std=std)])
@@ -60,6 +62,7 @@ def sup_vitl16():
 def sup_vitl16classic():
     model = torchvision.models.vit_l_16(weights =ViT_L_16_Weights.IMAGENET1K_V1)
     model.head = nn.Identity()
+    model.heads = nn.Identity()
     mean, std, image_size = (0.485, 0.456, 0.406), (0.229, 0.224, 0.225), 224
     preprocess = trv2.Compose([trv2.Resize(image_size, interpolation=InterpolationMode.BICUBIC), trv2.CenterCrop(image_size),
                   trv2.ToImage(), trv2.ToDtype(torch.float32, scale=True), trv2.Normalize(mean=mean, std=std)])

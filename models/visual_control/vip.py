@@ -3,8 +3,8 @@ import os
 import gdown
 import torch
 from torch import nn
-from torch.utils import model_zoo
 from torchvision.models import resnet50
+
 
 #Adapted from https://github.com/facebookresearch/vip
 

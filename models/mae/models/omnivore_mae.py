@@ -5,11 +5,12 @@
 # This source code is licensed under the license found in the
 # LICENSE file in the root directory of this source tree.
 
-import logging
 from functools import partial
 
 import torch
 import torch.nn as nn
+from timm.models.layers import trunc_normal_
+from torch.hub import load_state_dict_from_url
 
 from .vision_transformer import (
     Attention,
@@ -17,9 +18,6 @@ from .vision_transformer import (
     PadIm2Video,
     VisionTransformer,
 )
-
-from timm.models.layers import trunc_normal_
-from torch.hub import load_state_dict_from_url
 
 CHECKPOINT_PATHS = {
     "omnimae_vitB_pretrain": "https://dl.fbaipublicfiles.com/omnivore/omnimae_ckpts/vitb_pretrain.torch",

@@ -1,5 +1,3 @@
-from collections import defaultdict
-
 __all__ = ['list_models', 'register_model', 'model_registry']
 
 model_registry = {}

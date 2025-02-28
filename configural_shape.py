@@ -2,16 +2,14 @@ import argparse
 import csv
 import os
 
-import torch
-from torch.utils.data import DataLoader
-
-
-from lightning.fabric.strategies import DDPStrategy
 import lightning as L
+import torch
+from lightning.fabric.strategies import DDPStrategy
+from torch.utils.data import DataLoader
 
 from datasets import DATASETS
 from models.registry import list_models, model_registry
-from tools import BACKBONES, load_model, get_transforms, add_head, get_features, str2bool
+from tools import load_model, get_transforms, get_features, str2bool
 
 
 @torch.no_grad()
@@ -66,10 +64,8 @@ def configural_shape(args,  subset):
             main_f = features[mask_id].repeat((len(positives)*len(negatives), 1))
 
             correct = torch.nn.functional.cosine_similarity(main_f, p, dim=1)
-            # wrong1 = torch.nn.functional.cosine_similarity(main_f, n, dim=1)
             wrong2 = torch.nn.functional.cosine_similarity(n, p, dim=1)
 
-            # all_success = ( (correct > wrong1) & (correct > wrong2) ).float().sum()
             all_success = (correct > wrong2).float().sum()
             success += all_success
             fails += len(positives)*len(negatives) - all_success
@@ -160,7 +156,7 @@ def start_configural_shape(args, log_dir, subset_name):
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
-    parser.add_argument('--data_root', default="data", type=str)
+    parser.add_argument('--data_root', default="resources/baker/", type=str)
     parser.add_argument('--log_dir', default="logs", type=str)
     parser.add_argument('--load', default="random", type=str)
     parser.add_argument('--model', default="resnet50", type=str)

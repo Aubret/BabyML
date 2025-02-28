@@ -10,7 +10,6 @@ import urllib
 import gdown
 import torch
 import torch.nn as nn
-from torch.utils import model_zoo
 
 dir_path = os.path.dirname(os.path.realpath(__file__))
 

@@ -24,7 +24,6 @@ import torch.utils.checkpoint as checkpoint
 from timm.models.layers import DropPath, trunc_normal_
 from torch.nn.modules.utils import _ntuple
 
-
 to_2tuple = _ntuple(2)
 
 
