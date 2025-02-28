@@ -24,6 +24,17 @@ from torchvision import transforms
 
 parser = argparse.ArgumentParser()
 
+
+def str2bool(v):
+    if isinstance(v, bool):
+        return v
+    if v.lower() in ('yes', 'true', 't', 'y', '1', 'True'):
+        return True
+    elif v.lower() in ('no', 'false', 'f', 'n', '0', 'False'):
+        return False
+    else:
+        raise Exception('Boolean value expected.')
+
 # General
 parser.add_argument('--data_root', default="data", type=str)
 parser.add_argument('--log_dir', default="logs", type=str)

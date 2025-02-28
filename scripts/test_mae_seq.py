@@ -5,16 +5,10 @@ import re
 import sys
 sys.path.insert(0, os.path.dirname(os.path.realpath(__file__)) + "/..")
 import numpy as np
-import torchvision.utils
 from tqdm import tqdm
-
 from models import list_models
 from models.registry import model_registry
-
-sys.path.insert(0, os.path.dirname(os.path.realpath(__file__)) + "/..")
-
 import torch
-from matplotlib import pyplot as plt
 from torch.utils.data import DataLoader
 
 from lightning.fabric.strategies import DDPStrategy

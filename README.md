@@ -41,3 +41,9 @@ python3 converts/convert_mvimgnet.py --load ../models/mvimgnet/sslactequi/sslact
 python3 scripts/mental_rotation.py --load ../models/mvimgnet/sslactequi/converted_sslactequira.pt --data_root ../datasets/ShepardMetzler/ --dataset shepardmetzler
 python3 scripts/test_mae_seq.py --load videomae
 ```
+
+
+```
+python3 scripts/action_prediction_objects.py --load ../gym_results/imgnet/imgnet57_actequirav2_det+/03-12-24_11-12_imgnet57_actequirav2_det+_1/models/epoch_30.pt
+python3 scripts/action_prediction_objects_omni.py --model resnet18 --load ../gym_results/shapenet/omni11_sslact/16-07-24_11-52_omni11_sslact_0/models/epoch_100.pt
+```

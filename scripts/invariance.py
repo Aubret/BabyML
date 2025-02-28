@@ -24,7 +24,7 @@ import lightning as L
 
 from datasets import DATASETS
 from models.heads import ActionMultiLayerProj, MultiLayerProj, MultiLayerProjShortcut
-from tools import BACKBONES, load_model, get_transforms, add_head, get_features
+from tools import BACKBONES, load_model, get_transforms, add_head, get_features, hook_dense_features
 from torchvision.transforms import v2 as trv2, InterpolationMode
 
 # def load_model(load):
@@ -206,6 +206,8 @@ def invariance_v2(args):
         model = BACKBONES[args.model]()
         model = complete_head(model)
 
+    if args.dense_features:
+        model = hook_dense_features(model)
     # if args.dense_features:
     #     if has
     #     model.
@@ -262,17 +264,17 @@ def invariance_v2(args):
         inputsp = imgsp[maskp]
         featuresp = model(inputsp)
         if args.dense_features:
-            featuresp = model.dense_features
+            featuresp = model.dense_features.flatten(1)
 
         inputsn = imgsn[maskn]
         featuresn =model(inputsn)
         if args.dense_features:
-            featuresn = model.dense_features
+            featuresn = model.dense_features.flatten(1)
 
         inputs = imgs[mask]
         features= model(inputs).repeat(featuresn.shape[0],1)
         if args.dense_features:
-            features = model.dense_features
+            features = model.dense_features.flatten(1)
 
         correct = torch.nn.functional.cosine_similarity(features, featuresp, dim=1)
         wrong = torch.nn.functional.cosine_similarity(features, featuresn, dim=1)
@@ -335,6 +337,8 @@ if __name__ == '__main__':
     args.neg_subset = "mirror"
     # assert args.head == "action_prediction", "Need action prediction module"
     args.log_dir = os.path.join(args.log_dir, args.dataset, "inv")
+    if args.dense_features:
+        args.log_dir += "dense"
     if not os.path.exists(args.log_dir):
         os.makedirs(args.log_dir)
 

@@ -12,7 +12,7 @@ from torch.utils.data import Dataset
 
 class OmniDataset(Dataset):
 
-    def __init__(self,  root_dir, subset_name, transform=None, whitebg=True):
+    def __init__(self,  root_dir, subset_name, transform=None, whitebg=True, split="train"):
         super().__init__()
         self.transform = transform
         w = "w" if whitebg else ""
@@ -22,7 +22,12 @@ class OmniDataset(Dataset):
         with open(os.path.join(root_dir,"sorted_objs.json"), "r") as outfile:
             obj_view_info = json.load(outfile)
             obj_available = list(obj_view_info.keys())
-        self.dataset = pd.concat([data_train, data_test])
+        if split == "test":
+            self.dataset = data_test
+        elif split == "train":
+            self.dataset = data_train
+        else:
+            self.dataset = pd.concat([data_train, data_test])
 
         self.cat_map = {index: k for k, (index, _) in enumerate(data_train.groupby("category").count().iterrows())}
         self.inv_cat_map = {k: index for index, k in self.cat_map.items()}
@@ -59,6 +64,8 @@ class OmniDataset(Dataset):
                 all_angles = [-180, 0, 180]
             elif subset_name == "quarter":
                 all_angles = [-135, -45, 45, 135]
+            elif isinstance(subset_name, int):
+                all_angles = [subset_name]
             else:
                 raise Exception("subset not available")
             selected_views = self.get_specific_views(all_angles)

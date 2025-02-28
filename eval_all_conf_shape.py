@@ -13,6 +13,17 @@ if __name__ == '__main__':
     def str2table(v):
         return v.split(',')
 
+
+    def str2bool(v):
+        if isinstance(v, bool):
+            return v
+        if v.lower() in ('yes', 'true', 't', 'y', '1', 'True'):
+            return True
+        elif v.lower() in ('no', 'false', 'f', 'n', '0', 'False'):
+            return False
+        else:
+            raise Exception('Boolean value expected.')
+
     parser = argparse.ArgumentParser()
     parser.add_argument('--data_root', default="../datasets/baker/", type=str)
     parser.add_argument('--log_dir', default="logs", type=str)
@@ -28,6 +39,8 @@ if __name__ == '__main__':
     args.dataset = "frankenstein"
 
     log_dir = os.path.join(args.log_dir, args.dataset+("9" if args.class_number == 9 else ""))
+    if args.dense_features:
+        log_dir += "dense"
     if not os.path.exists(log_dir):
         os.makedirs(log_dir)
     # for model in list_models:
@@ -36,4 +49,7 @@ if __name__ == '__main__':
     for model in models:
         print("Start", model)
         args.load = model
-        start_configural_shape(args, log_dir, args.subset)
+        try:
+            start_configural_shape(args, log_dir, args.subset)
+        except Exception as e:
+            print(e)

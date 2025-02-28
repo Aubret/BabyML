@@ -3,6 +3,7 @@ import os, sys
 
 from models import list_models
 from scripts.invariance import start_invariance
+from scripts.invariance_max import start_invariance_max
 
 list_models_rn50 = ['clip_rn50', 'byol_rn50', 'r3m', 'vip', 'aasimclr','simclrtt', 'mocov2', 'bagnet33', 'resnet50_l2_eps1', "bagnet17"]
 
@@ -47,7 +48,7 @@ if __name__ == '__main__':
     args.pos_subset = "rotated"
     args.neg_subset = "mirror"
     # assert args.head == "action_prediction", "Need action prediction module"
-    args.log_dir = os.path.join(args.log_dir, args.dataset, "inv")
+    args.log_dir = os.path.join(args.log_dir, args.dataset, "invmax")
     if args.dense_features:
         args.log_dir += "dense"
     if not os.path.exists(args.log_dir):
@@ -59,6 +60,6 @@ if __name__ == '__main__':
         print("Start", model)
         args.load = model
         try:
-            start_invariance(args, args.log_dir)
+            start_invariance_max(args, args.log_dir)
         except Exception as e:
             print(e)

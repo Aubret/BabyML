@@ -22,33 +22,13 @@ from datasets import DATASETS
 from models.heads import ActionMultiLayerProj, MultiLayerProj, MultiLayerProjShortcut
 from tools import BACKBONES, load_model, get_transforms, add_head, get_features
 from torchvision.transforms import v2 as trv2, InterpolationMode
-
-# if "omni" in args.load:
-# action_mean = torch.tensor([0]*2)
-# action_std = torch.tensor([1]*2)
-# else:
-action_mean = torch.tensor([0.759, -0.000354, -0.00682, -0.00723, 0.00314, 0.00787, -0.0171, 0])
-action_std = torch.tensor([0.431, 0.048, 0.358, 0.328, 3.8, 1.25, 1.13, 1])
-
-
+from scipy.spatial.transform import Rotation as R
+# action_mean = torch.tensor([0.759, -0.000354, -0.00682, -0.00723, 0.00314, 0.00787, -0.0171, 0])
+# action_std = torch.tensor([0.431, 0.048, 0.358, 0.328, 3.8, 1.25, 1.13, 1])
 
 axis_rotation="yzx"
-# axis_rotation="zyx"
-# axis_rotation="xyz"
-
-
-# def load_model(load):
-#     home = os.environ['HOME']
-#     dest_path = f"{home}/.cache/torch/hub/mental_rotations/"
-#     if not os.path.exists(dest_path):
-#         os.makedirs(dest_path)
-#
-#     path_load = "goethe:/scratch/autolearn/aubret/results/imgnet/"
-#     dest_path = os.path.join(dest_path, load)
-#
-#     if os.path.exists(dest_path):
-#         model.load_state_dict(torch.load(f"{home}/.cache/torch/hub/checkpoints/byol_r50.pth.tar"))
-#         return model
+action_mean = torch.tensor([0]*2)
+action_std = torch.tensor([1]*2)
 
 def clean_checkpoint(checkpoint):
     new_state_dict = {}
@@ -97,7 +77,6 @@ def clean_checkpoint(checkpoint):
             new_state_dict[new_k] = w
     return new_state_dict
 
-
 def quaternion_multiply(quaternion1, quaternion0):
     w0, x0, y0, z0 = quaternion0
     w1, x1, y1, z1 = quaternion1
@@ -105,35 +84,64 @@ def quaternion_multiply(quaternion1, quaternion0):
                      x1 * w0 + y1 * z0 - z1 * y0 + w1 * x0,
                      -x1 * z0 + y1 * w0 + z1 * x0 + w1 * y0,
                      x1 * y0 - y1 * x0 + z1 * w0 + w1 * z0], dtype=np.float64)
+def plot_rotation(r):
+    def plot_rotated_axes(ax, r, name=None, offset=(0, 0, 0), scale=1):
+        colors = ("#FF6666", "#005533", "#1199EE")  # Colorblind-safe RGB
+        loc = np.array([offset, offset])
+        for i, (axis, c) in enumerate(zip((ax.xaxis, ax.yaxis, ax.zaxis),colors)):
+            axlabel = axis.axis_name
+
+            axis.set_label_text(axlabel)
+            axis.label.set_color(c)
+            axis.line.set_color(c)
+            axis.set_tick_params(colors=c)
+            line = np.zeros((2, 3))
+            line[1, i] = scale
+            line_rot = r.apply(line)
+            line_plot = line_rot + loc
+            ax.plot(line_plot[:, 0], line_plot[:, 1], line_plot[:, 2], c)
+            text_loc = line[1]*1.2
+            text_loc_rot = r.apply(text_loc)
+            text_plot = text_loc_rot + loc[0]
+            ax.text(*text_plot, axlabel.upper(), color=c,va="center", ha="center")
+
+        ax.text(*offset, name, color="k", va="center", ha="center",bbox={"fc": "w", "alpha": 0.8, "boxstyle": "circle"})
+
+    ax = plt.figure().add_subplot(projection="3d", proj_type="ortho")
+    plot_rotated_axes(ax, R.identity(), name="r0", offset=(0, 0, 0))
+    plot_rotated_axes(ax, r, name="r1", offset=(0, 0, 0))
+    _ = ax.annotate("r0 Identity Rotation\n" "r1 actual rotation\n",xy=(0.6, 0.7), xycoords="axes fraction", ha="left")
+    ax.set(xlim=(-1.25, 7.25), ylim=(-1.25, 1.25), zlim=(-1.25, 1.25))
+    ax.set(xticks=range(-1, 8), yticks=[-1, 0, 1], zticks=[-1, 0, 1])
+    ax.set_aspect("equal", adjustable="box")
+    ax.figure.set_size_inches(24, 20)
+    plt.tight_layout()
+    plt.show()
 
 def relative_quaternion(a0, a1):
     eul0 = scipy.spatial.transform.Rotation.from_euler(axis_rotation, angles=np.array([a0,0,0]), degrees=True)
     eul1 = scipy.spatial.transform.Rotation.from_euler(axis_rotation, angles=np.array([a1,0,0]), degrees=True)
     translation0 = 2* np.array([math.cos(math.pi * a0/180), math.sin(math.pi* a0/180), 0])
     translation1 = 2*np.array([math.cos(math.pi* a1/180), math.sin(math.pi* a1/180), 0])
+    # translation0 = np.array([math.sin(math.pi * a0/180), math.cos(math.pi* a0/180), 0])
+    # translation1 = np.array([math.sin(math.pi* a1/180), math.cos(math.pi* a1/180), 0])
+    # translation0 = np.array([1*math.sin(math.pi * a0/180), -1,  1*math.cos(math.pi* a0/180)])
+    # translation1 = np.array([1*math.sin(math.pi* a1/180), -1, 1*math.cos(math.pi* a1/180)])
 
     a0 = scipy.spatial.transform.Rotation.as_quat(eul0)
     a1 = scipy.spatial.transform.Rotation.as_quat(eul1)
     # q0 = np.concatenate((a0[1:4], a0[0:1]), axis=0)
     # q1 = np.concatenate((a1[1:4], a1[0:1]), axis=0)
     q0, q1 = a0, a1
-    q0 = q0 / np.linalg.norm(q0, axis=0)
-    q1 = q1 / np.linalg.norm(q1, axis=0)
 
     resq = quaternion_multiply((q0[3:4], -q0[0:1], -q0[1:2], -q0[2:3]), (q1[3:4], q1[0:1], q1[1:2], q1[2:3])).squeeze()
-
-    # resq2 = eul1 * eul0.inv()
-    # resq2n = resq2.as_quat()
-    # print(scipy.spatial.transform.Rotation.from_quat(np.concatenate((resq[1:4], resq[0:1]), axis=0)).as_euler(axis_rotation,degrees=True))
-    # print(scipy.spatial.transform.Rotation.from_quat(resq).as_euler(axis_rotation,degrees=True))
-    # print(resq2.as_euler(axis_rotation,degrees=True))
 
     translation = translation1 - translation0
     # r0 = scipy.spatial.transform.Rotation.from_quat(q0)
     # translation = np.matmul(np.transpose(r0.as_matrix()), translation)
 
-    action = torch.tensor(np.concatenate((resq, np.clip(translation, -50, 50), np.array([0])), axis=0), dtype=torch.float32)
 
+    action = torch.tensor(np.concatenate((resq, np.clip(translation, -50, 50), np.array([0])), axis=0), dtype=torch.float32)
     action = (action - action_mean)/action_std
     return action
 
@@ -141,11 +149,10 @@ def relative_quaternion2(a):
     eul = scipy.spatial.transform.Rotation.from_euler(axis_rotation, angles=np.array([a,0,0]), degrees=True)
     a = scipy.spatial.transform.Rotation.as_quat(eul)
     # a = np.concatenate((a[1:4], a[0:1]), axis=0)
-    a = np.concatenate((a[3:4], a[0:3]), axis=0)
-
+    # a = np.concatenate((a[3:4], a[0:3]), axis=0)
 
     action = (torch.tensor(a)- action_mean[:4])/action_std[:4]
-    return torch.cat((action, torch.tensor([0,0,0,0])))
+    return torch.cat((action, torch.tensor([0,0,0,0]))), eul
 
 def inverse_transform(pred_action):
 
@@ -158,16 +165,22 @@ def inverse_transform(pred_action):
 
 @torch.no_grad()
 def predict_action(args):
+    a1, a2 = 45, -45
+    # a1, a2 = -45, +45
+
     if len(action_mean) > 2:
-        action = relative_quaternion2(50).to("cuda:0").to(torch.float32)
+        action = relative_quaternion(0, a1).to("cuda:0").to(torch.float32)
         print(action)
-        action = relative_quaternion(100, 150).to("cuda:0").to(torch.float32)
-        print(action)
+        # action, r = relative_quaternion2(a1)
+        # action = action.to("cuda:0").to(torch.float32)
+        # plot_rotation(r)
+        # print(action)
+
 
     else:
         # action = torch.tensor([math.sin(a1 * math.pi/180), math.cos(a1 * math.pi/180)])
-        action = torch.tensor([math.sin(-50 * math.pi/180), math.cos(-50 * math.pi/180)])
-        # action = torch.tensor([math.sin(50 * math.pi/180), math.cos(50 * math.pi/180)])
+        action = torch.tensor([math.sin(a2 * math.pi/180), math.cos(a2 * math.pi/180)])
+    print(action)
     # print(action, relative_quaternion2(50))
     # print(action)
 
@@ -176,10 +189,8 @@ def predict_action(args):
     fabric = L.Fabric(accelerator=args.device, devices=args.num_devices, strategy=strategy, precision="32-true")
     fabric.launch()
 
-    if "omni" in args.load:
-        mean, std, image_size = (0, 0, 0), (1, 1, 1), 224
-    else:
-        mean, std, image_size =  (0.485, 0.456, 0.406), (0.229, 0.224, 0.225), 224
+    mean, std, image_size = (0, 0, 0), (1, 1, 1), 224
+    # mean, std, image_size =  (0.485, 0.456, 0.406), (0.229, 0.224, 0.225), 224
     preprocess = trv2.Compose([trv2.Resize(image_size, interpolation=InterpolationMode.BICUBIC), trv2.CenterCrop(image_size),
                          trv2.ToImage(), trv2.ToDtype(torch.float32, scale=True), trv2.Normalize(mean=mean, std=std)])
 
@@ -188,22 +199,13 @@ def predict_action(args):
     # n_out = 2048
     n_out = 512 if args.model == "resnet18" else 2048
     n_features = 128
-    # model.head_action = ActionMultiLayerProj(2, 2 * n_out, 2048, n_features, bias=False)
-    # model.head_prediction = MultiLayerProjShortcut(2, n_out+n_features, 4096, n_out, bias=False)
-    # print(model)
 
-    if "imgnet" in args.load:
-        model.head_action = ActionMultiLayerProj(2, 2 * n_out, 2048, n_features, bias=False)
-        model.action = torch.nn.Sequential(MultiLayerProj(1, 8, 2048, n_features, bias=False),torch.nn.BatchNorm1d(n_features, affine=False))
+    ###Omni dataset
+    model.head_action = ActionMultiLayerProj(2, 2 * n_out, 1024, n_features, bias=False)
+    model.action = torch.nn.Sequential(MultiLayerProj(1, 2, 1024, n_features, bias=False),torch.nn.BatchNorm1d(n_features, affine=False))
 
-        # model.head_action = ActionMultiLayerProj(2, 2 * n_out, 1024, 8, bias=True)
-        # model.ciper_action_bn = torch.nn.BatchNorm1d(8, affine=False)
-
-    # Omniview
-    if "omni" in args.load:
-        model.head_action = ActionMultiLayerProj(2, 2 * n_out, 1024, n_features, bias=False)
-        model.action = torch.nn.Sequential(MultiLayerProj(1, 2, 1024, n_features, bias=False),torch.nn.BatchNorm1d(n_features, affine=False))
-
+    # model.head_action = ActionMultiLayerProj(1, 2 * n_out, 1024, 2, bias=False)
+    # model.ciper_action_bn = torch.nn.BatchNorm1d(2, affine=False)
 
 
     if args.load != "random":
@@ -226,27 +228,31 @@ def predict_action(args):
 
     # print(preprocess)
     whitebg=False
-    dataset = DATASETS[args.dataset](args.data_root, subset_name=args.pos_subset, transform=preprocess, whitebg=whitebg, rotation="100")
-    dataset_pos = DATASETS[args.dataset](args.data_root, subset_name=args.pos_subset, transform=preprocess, whitebg=whitebg, rotation="150")
-    dataset_neg = DATASETS[args.dataset](args.data_root, subset_name=args.neg_subset, transform=preprocess, whitebg=whitebg,rotation="150")
+    dataset = DATASETS[args.dataset](args.data_root, subset_name=0, transform=preprocess, split="test", whitebg=whitebg)
+    dataset_pos = DATASETS[args.dataset](args.data_root, subset_name=a1, transform=preprocess,  split="test", whitebg=whitebg)
+    dataset_neg = DATASETS[args.dataset](args.data_root, subset_name=a2, transform=preprocess,  split="test", whitebg=whitebg)
 
     dataloader = DataLoader(dataset, batch_size=16, shuffle=False, pin_memory=True, num_workers=1)
     dataloader_pos = DataLoader(dataset_pos, batch_size=16, shuffle=False, pin_memory=True, num_workers=1)
     dataloader_neg = DataLoader(dataset_neg, batch_size=16, shuffle=False, pin_memory=True, num_workers=1)
 
-    dataloader, dataloader_pos, dataloader_neg = fabric.setup_dataloaders(dataloader, dataloader_pos, dataloader_neg)
+    dataloader, dataloader_pos, dataloader_neg = fabric.setup_dataloaders(dataloader, dataloader_pos, dataloader_neg, move_to_device=True)
 
-    # for img, label, img_id in dataloader:
-    #     for i, idi in zip(img, img_id):
-    #         torchvision.utils.save_image(i, "/home/fias/postdoc/gym_results/test_images/sheperdwhite/"+str(idi.item())+".png")
-    #     break
-    # for img, label, img_id in dataloader_pos:
-    #     for i, idi in zip(img, img_id):
-    #         torchvision.utils.save_image(i, "/home/fias/postdoc/gym_results/test_images/sheperdwhite2/"+str(idi.item())+".png")
-    #     break
-    # return
-    model = fabric.setup(model)
+    model = fabric.setup(model, move_to_device=True)
     model.eval()
+
+    for img, label, img_id,_ in dataloader:
+        for i, idi in zip(img, img_id):
+            torchvision.utils.save_image(i, "/home/fias/postdoc/gym_results/test_images/omniview_test/"+str(idi.item())+".png")
+        break
+    for img, label, img_id,_ in dataloader_pos:
+        for i, idi in zip(img, img_id):
+            torchvision.utils.save_image(i, "/home/fias/postdoc/gym_results/test_images/omniview_test_pos/"+str(idi.item())+".png")
+        break
+    for img, label, img_id,_ in dataloader_neg:
+        for i, idi in zip(img, img_id):
+            torchvision.utils.save_image(i, "/home/fias/postdoc/gym_results/test_images/omniview_test_neg/"+str(idi.item())+".png")
+        break
 
     features, labels, img_ids = get_features(dataloader, model, fabric)
     features_pos, labels_pos, img_ids_pos = get_features(dataloader_pos, model, fabric)
@@ -262,8 +268,9 @@ def predict_action(args):
     # naive_acc= ((correct >= wrong1) & (correct >= wrong2)).float().mean().item()
     naive_acc= (correct > wrong1).float().mean().item()
 
-    action_acc, action_acc2, cpt, loss = 0, 0, 0, 0
+    action_acc, action_acc2, loss, cpt = 0, 0, 0, 0
     action = fabric.to_device(action)
+
     action = model.action(action.unsqueeze(0)) if not "ciper" in args.load else model.ciper_action_bn(action.unsqueeze(0))
     for f, f_p, f_n in zip(features.split(64), features_pos.split(64), features_neg.split(64)):
         if hasattr(model, "action_rep_projector"):
@@ -272,29 +279,32 @@ def predict_action(args):
         pred_action = model.head_action.forward_all(f, f_p)
         pred_action_n = model.head_action.forward_all(f, f_n)
 
+        # print(pred_action*action_std+action_mean, pred_action_n*action_std+action_mean)
+
+        # print(action, pred_action[0].view(-1))
+
         if "ciper" in args.load:
-            loss += torch.nn.functional.mse_loss(action.repeat((pred_action.shape[0], 1))[:, :4], pred_action[:, :4],reduction="none").mean(dim=1).sum().item()
-            action_acc += (torch.norm(pred_action[:, :4] - action[:, :4], dim=1) < torch.norm(pred_action_n[:, :4] - action[:, :4], dim=1)).float().sum().item()
+            loss += torch.nn.functional.mse_loss(action.repeat((pred_action.shape[0], 1))[:,:4], pred_action[:,:4], reduction="none").mean(dim=1).sum().item()
+            action_acc += (torch.norm(pred_action[:,:4] - action[:,:4], dim=1) < torch.norm(pred_action_n[:,:4] - action[:,:4], dim=1)).float().sum().item()
         else:
-            loss += torch.nn.functional.cosine_similarity(action.repeat((pred_action.shape[0], 1)), pred_action,dim=1).sum().item()
-            action_acc += (torch.nn.functional.cosine_similarity(pred_action, action,dim=1) > torch.nn.functional.cosine_similarity(pred_action_n, action, dim=1)).float().sum().item()
+            loss += torch.nn.functional.cosine_similarity(action.repeat((pred_action.shape[0], 1)), pred_action, dim=1).sum().item()
+            action_acc += (torch.nn.functional.cosine_similarity(pred_action , action, dim=1) > torch.nn.functional.cosine_similarity(pred_action_n, action, dim=1)).float().sum().item()
             action_acc2 += (torch.norm(pred_action - action.repeat((pred_action.shape[0], 1)), dim=1) < torch.norm(pred_action_n - action.repeat((pred_action.shape[0], 1)), dim=1)).float().sum().item()
 
         cpt += f.shape[0]
 
         if "ciper" in args.load:
             pred_action = pred_action * (model.ciper_action_bn.running_var ** 0.5) + model.ciper_action_bn.running_mean
-            pred_action_n = pred_action_n * (
-                        model.ciper_action_bn.running_var ** 0.5) + model.ciper_action_bn.running_mean
+            pred_action_n = pred_action_n * (model.ciper_action_bn.running_var ** 0.5) + model.ciper_action_bn.running_mean
             for i in range(f.shape[0]):
                 # print(math.atan2(pred_action[i,0].item(), pred_action[i,1].item())*180/math.pi, math.atan2(pred_action_n[i,0].item(), pred_action_n[i,1].item())*180/math.pi)
                 # action_acc2 += abs(math.atan2(pred_action[i,0].item(), pred_action[i,1].item()) - a1) < abs(math.atan2(pred_action_n[i,0].item(), pred_action_n[i,1].item()) - a1)
                 print(inverse_transform(pred_action[i]), inverse_transform(pred_action_n[i]))
-                action_acc2 += float(
-                    abs(inverse_transform(pred_action[i])[0] - a1) < abs(inverse_transform(pred_action_n[i])[0] - a1))
+                action_acc2 += float(abs(inverse_transform(pred_action[i])[0] - a1) < abs(inverse_transform(pred_action_n[i])[0] - a1))
 
-    print(naive_acc, action_acc / cpt, action_acc2 / cpt, loss / cpt)
-    return naive_acc, action_acc / cpt, action_acc2 / cpt
+
+    print(naive_acc, action_acc/cpt, action_acc2/cpt, loss/cpt)
+    return naive_acc, action_acc/cpt, action_acc2/cpt
 
 
 if __name__ == '__main__':
@@ -316,7 +326,7 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser()
 
     # General
-    parser.add_argument('--data_root', default="../datasets/ShepardMetzler/", type=str)
+    parser.add_argument('--data_root', default="../datasets/OmniDataset/", type=str)
     parser.add_argument('--log_dir', default="logs", type=str)
     parser.add_argument('--load', default="random", type=str)
     parser.add_argument('--model', default="resnet50", type=str)
@@ -331,7 +341,7 @@ if __name__ == '__main__':
     args = parser.parse_args()
     args.pos_subset = "rotated"
     args.neg_subset = "mirror"
-    args.dataset = "shepardmetzler"
+    args.dataset = "omnidataset"
     # assert args.head == "action_prediction", "Need action prediction module"
     args.log_dir = os.path.join(args.log_dir, args.dataset, "action")
     if not os.path.exists(args.log_dir):

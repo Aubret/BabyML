@@ -11,7 +11,7 @@ import lightning as L
 
 from datasets import DATASETS
 from models.registry import list_models, model_registry
-from tools import BACKBONES, load_model, get_transforms, add_head, get_features, str2bool
+from tools import BACKBONES, load_model, get_transforms, add_head, get_features, str2bool, hook_dense_features
 
 
 @torch.no_grad()
@@ -103,12 +103,13 @@ def configural_shape9(args,  subset):
 
     model = fabric.setup(model)
     model.eval()
+    if args.dense_features:
+        model = hook_dense_features(model)
 
-    features, labels, img_ids = get_features(dataloader, model, fabric)
-    features_test, labels_test, img_ids_test = get_features(dataloader_test, model, fabric)
+    features, labels, img_ids = get_features(dataloader, model, fabric, dense_features=args.dense_features)
+    features_test, labels_test, img_ids_test = get_features(dataloader_test, model, fabric, dense_features=args.dense_features)
 
     success = 0
-    fails = 0
     all = 0
     lunique = labels.unique()
 
@@ -148,7 +149,8 @@ def configural_shape9(args,  subset):
 
 def start_configural_shape(args, log_dir, subset_name):
     args.dataset = "frankenstein"
-    subset_set = DATASETS[args.dataset].all_subsets + ["all"] if subset_name == "full" else [subset_name]
+    # subset_set = DATASETS[args.dataset].all_subsets + ["all"] if subset_name == "full" else [subset_name]
+    subset_set = DATASETS[args.dataset].all_subsets if subset_name == "full" else [subset_name]
     name_test = args.load.split('/')[-1].split(".")[0] if not args.load in list_models() else args.load
     with open(os.path.join(log_dir, f"{subset_name}_{name_test}_{args.dataset}_config_shape.csv"), "w") as f:
         wcsv = csv.writer(f)
@@ -173,7 +175,11 @@ if __name__ == '__main__':
     parser.add_argument('--class_number', default=9, type=int)
     args = parser.parse_args()
 
-    log_dir = os.path.join(args.log_dir, "frankenstein9")
+    if not args.dense_features:
+        log_dir = os.path.join(args.log_dir, "frankenstein9")
+    else:
+        log_dir = os.path.join(args.log_dir, "frankenstein9dense")
+
     if not os.path.exists(log_dir):
         os.makedirs(log_dir)
     start_configural_shape(args, log_dir, args.subset)

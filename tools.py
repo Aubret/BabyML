@@ -20,31 +20,84 @@ BACKBONES = {
 }
 
 
+def module_finding(m, pattern):
+    try:
+        for c, cm in m.named_children():
+            # if not hasattr(c, "__name__"): return module_finding(c, pattern)
+            if pattern in c:
+                return c
+            child = module_finding(cm, pattern)
+            if child:
+                return c + "." + child
+        return False
+    except:
+        return False
+
+def module_finding_class(m, pattern):
+    if pattern in m.__class__.__name__:
+        return True
+    for c, cm in m.named_children():
+        child = module_finding_class(cm, pattern)
+        if child:
+            return child
+    return False
+
+
+
 def hook_dense_features(model):
-    def patch_hook_resnet():
+    def patch_hook_resnet(modeld):
         def fn(module, __, output):
-            module.dense_features = output
-    def patch_hook_vit():
-        def fn(module, __, output):
-            pf = output.squeeze()[:, 1:]  # No token
-            pf = torch.permute(pf, (0, 2, 1))
-            module.dense_features = pf.view(pf.shape[0], -1, int(math.sqrt(pf.shape[2])),int(math.sqrt(pf.shape[2])))
-
+            modeld.dense_features = output
+            return output
         return fn
-    if "Resnet" in model.__class__.__name__:
-        layer = "pool"
-        model.get_submodule(layer).register_forward_hook(patch_hook_resnet(model))
+    def patch_hook_vit(modeld):
+        def fn(module, __, output):
+            pf=output
+            if output.shape[1] in [16, 32, 1, 3]:
+                pf = torch.permute(pf, (1, 0, 2 ))
+            if hasattr(modeld, "num_register_tokens"):
+                #Dino Vision transformer special case with several "register tokens"
+                pf = pf[:, modeld.num_register_tokens+1:]
+            elif pf.shape[1]%2 == 1:
+                pf = pf[:, 1:]
+            pf = torch.permute(pf, (0, 2, 1 ))
+            # module.dense_features = pf.view(pf.shape[0], -1, int(math.sqrt(pf.shape[2])),int(math.sqrt(pf.shape[2])))
+            modeld.dense_features = pf.view(pf.shape[0], -1, int(math.sqrt(pf.shape[2])),int(math.sqrt(pf.shape[2])))
+            return output
+        return fn
 
-    elif "EfficientNet" in model.__class__.__name__:
-        layer = "pool"
-        model.get_submodule(layer).register_forward_hook(patch_hook_resnet(model))
+    # print({k:v for k,v in model.named_modules()})
+    # print(model.module.extra_repr())
+    # print(module_finding(model.module, "layer4"))
 
-    elif "Vision" in model.__class__.__name__:
-        layer = "block.11"
-        model.get_submodule(layer).register_forward_hook(patch_hook_vit(model))
+    module = model.module if hasattr(model, "module") else model
+    if module_finding_class(module, "ResNet") or module_finding_class(module, "BagNet"):
+        repr_layer = module_finding(module, "layer4")
+        model.get_submodule(repr_layer).register_forward_hook(patch_hook_resnet(model))
+    elif module_finding_class(module, "ConvNeXt"):
+        repr_layer = module_finding(module, "stages")
+        model.get_submodule(repr_layer).register_forward_hook(patch_hook_resnet(model))
+    elif module_finding_class(module, "EfficientNet"):
+        repr_layer = module_finding(module, "blocks")
+        model.get_submodule(repr_layer).register_forward_hook(patch_hook_resnet(model))
+
+    elif module_finding_class(module, "VisionTransformer"):
+        repr_layer = module_finding(module, "blocks")
+        if not repr_layer:
+            repr_layer = module_finding(module, "layers")
+
+        for add_name in [".23", ".11", ".encoder_layer_23", ".encoder_layer_11"]:
+            try:
+                if model.get_submodule(repr_layer+add_name):
+                    repr_layer = repr_layer+add_name
+                    break
+            except:
+                pass
+        model.get_submodule(repr_layer).register_forward_hook(patch_hook_vit(model))
     else:
-        raise Exception("Dense features not available for this model")
-
+        print(module)
+        raise Exception(f"Dense features not available for this model {model.__class__.__name__}")
+    return model
 
 
 def load_model(args, preprocess=None):
@@ -123,7 +176,7 @@ def get_features(dataloader, model, fabric, dense_features=False):
         img, label, img_id = r[0], r[1], r[2]
         f = model(img)
         if dense_features:
-            f = model.dense_features
+            f = model.dense_features.flatten(1)
         features.append(torch.clone(f))
         labels.append(label)
         img_ids.append(img_id)
