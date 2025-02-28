@@ -6,27 +6,23 @@ toddlers ?**
 
 We will keep updating the repository with new models and novels experiments !
 
-<hr style="border-top: 5px solid grey;">
+----
 
 ## News !
 
-----
+
 - **28/02/2025**: Add VideoMAE, V-JEPA models and other dinov2 models 
 - **28/02/2025**: Upload the original code
 
-<hr style="border-top: 5px solid grey;">
+----
 
 ## Install dependencies and datasets
 
-----
-
 `python3 -m pip install -r requirements.txt`
 
-----
+
 **Caricatures**: Images are available [there](https://osf.io/wbrd4/). To be extracted 
 in `resources/`
-
----
 
 #### Shape bias
 
@@ -39,21 +35,18 @@ From this [repo](https://github.com/alexatartaglini/developmental-shape-bias/tre
 `python3 create_datasets/create_dataset.py --name shape_simpletext`
 `python3 create_datasets/create_dataset.py --name simpleshape_simpletext`
 
----
 
-**OmniObject3D**  must be downloaded following this [repo](https://github.com/omniobject3d/OmniObject3D)
+**OmniObject3D**  must be downloaded following this [repo](https://github.com/omniobject3d/OmniObject3D).
+The code uses a hdf5 version of the dataset, constructed with:
 
 `python3 create_datasets/create_hdf5_omni.py`
 
----
 **Normal + Frakenstein silhouettes**: The dataset is provided on demand by [Prof. Baker](https://www.luc.edu/psychology/people/facultyandstaffdirectory/profiles/bakernicholas.shtml)
 
-<hr style="border-top: 5px solid grey;">
+----
 
 
 ## Evaluation of models
-
-----
 
 The codes automatically download the models in the standard torch zoo directory. 
 models.
@@ -74,11 +67,9 @@ For configural arrangement of parts:
 
 `python3 eval_conf_shape.py --difficulty hard`
 
-<hr style="border-top: 5px solid grey;">
+----
 
 ## Citation 
-
-----
 
 If you use BabyML, please cite our blogpost:
 
