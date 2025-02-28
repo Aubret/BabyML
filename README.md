@@ -16,10 +16,12 @@ We will keep updating the repository with new models and novels experiments !
 
 ----
 
-## Install dependencies and datasets
+## Install dependencies
 
 `python3 -m pip install -r requirements.txt`
 
+---- 
+## Download datasets 
 
 **Caricatures**: Images are available [there](https://osf.io/wbrd4/). To be extracted 
 in `resources/`
@@ -31,9 +33,12 @@ From this [repo](https://github.com/alexatartaglini/developmental-shape-bias/tre
 - Copy brodatz-textures to `resources/`
 - Copy geirhos-masks to `resources/`
 - Copy novel-masks to `resources`
+- Then run:
 
-`python3 create_datasets/create_dataset.py --name shape_simpletext`
-`python3 create_datasets/create_dataset.py --name simpleshape_simpletext`
+```
+python3 create_datasets/create_dataset.py --name shape_simpletext
+python3 create_datasets/create_dataset.py --name simpleshape_simpletext
+```
 
 
 **OmniObject3D**  must be downloaded following this [repo](https://github.com/omniobject3d/OmniObject3D).
